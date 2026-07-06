@@ -20,6 +20,7 @@ const MainApp = () => {
   const [activePage, setActivePage] = useState('');
   const [toast, setToast] = useState(null);
   const [editingDraftWeek, setEditingDraftWeek] = useState(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   React.useEffect(() => {
     if (user) {
@@ -84,10 +85,15 @@ const MainApp = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar activePage={activePage} setActivePage={setActivePage} />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }}>
+      <Navbar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        isCollapsed={isCollapsed} 
+        setIsCollapsed={setIsCollapsed} 
+      />
       
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, padding: '40px', overflowY: 'auto', boxSizing: 'border-box' }}>
         {renderActivePage()}
       </main>
 
