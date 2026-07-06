@@ -1,0 +1,68 @@
+package com.reportgenerator.config;
+
+import com.reportgenerator.model.Project;
+import com.reportgenerator.model.Role;
+import com.reportgenerator.model.User;
+import com.reportgenerator.repository.ProjectRepository;
+import com.reportgenerator.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+@Component
+public class DatabaseSeeder implements CommandLineRunner {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Override
+    public void run(String... args) throws Exception {
+        // 1. Seed Projects
+        if (projectRepository.count() == 0) {
+            projectRepository.save(new Project("Client A", "Development and support for Client A portal."));
+            projectRepository.save(new Project("Internal Tooling", "Building libraries and workflows for the internal engineering team."));
+            projectRepository.save(new Project("R&D", "Research and prototyping of next-generation features."));
+            projectRepository.save(new Project("Marketing Campaign", "Technical support and data integrations for marketing activities."));
+            System.out.println("✅ Default project categories seeded successfully!");
+        }
+
+        // 2. Seed Users
+        if (userRepository.count() == 0) {
+            // Seed a Manager (Admin)
+            User manager = new User(
+                    "manager@example.com",
+                    passwordEncoder.encode("manager123"),
+                    "Jane Doe (Manager)",
+                    Role.MANAGER
+            );
+            userRepository.save(manager);
+
+            // Seed a Team Member
+            User member1 = new User(
+                    "member@example.com",
+                    passwordEncoder.encode("member123"),
+                    "John Smith (Member)",
+                    Role.MEMBER
+            );
+            userRepository.save(member1);
+
+            // Seed another Team Member for compliance demo
+            User member2 = new User(
+                    "dev@example.com",
+                    passwordEncoder.encode("member123"),
+                    "Alex Carter (Developer)",
+                    Role.MEMBER
+            );
+            userRepository.save(member2);
+
+            System.out.println("✅ Default manager (manager@example.com) and members seeded successfully!");
+        }
+    }
+}

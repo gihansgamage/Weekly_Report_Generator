@@ -1,0 +1,28 @@
+# Environment configurations
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDE / System files
+.idea/
+.vscode/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Node dependencies & builds
+node_modules/
+dist/
+dist-ssr/
+
+# Java / Maven targets
+target/
+.mvn/
+mvnw
+mvnw.cmd
