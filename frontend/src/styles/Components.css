@@ -355,3 +355,22 @@
 .toast.success { background: rgba(16, 185, 129, 0.9); color: white; border: 1px solid #10b981; }
 .toast.error { background: rgba(239, 68, 68, 0.9); color: white; border: 1px solid #ef4444; }
 .toast.info { background: rgba(27, 168, 131, 0.95); color: white; border: 1px solid var(--color-primary); }
+
+@media (max-width: 900px) {
+  .navbar {
+    height: auto;
+    flex-direction: column;
+    padding: 15px 20px;
+    gap: 12px;
+    align-items: center;
+    text-align: center;
+  }
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+  .nav-profile {
+    margin-top: 5px;
+  }
+}
