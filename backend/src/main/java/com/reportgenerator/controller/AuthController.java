@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    @org.springframework.beans.factory.annotation.Value("${google.client.id}")
+    private String googleClientId;
+
     @Autowired
     private AuthenticationManager authenticationManager;
 
@@ -50,6 +53,7 @@ public class AuthController {
                 jwt,
                 userDetails.getId(),
                 userDetails.getUsername(),
+                userDetails.getActualUsername(),
                 userDetails.getName(),
                 roleStr
         ));
@@ -61,6 +65,10 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
+        if (userRepository.existsByUsername(signUpRequest.getUsername().trim().toLowerCase())) {
+            return ResponseEntity.badRequest().body("Error: Username is already in use!");
+        }
+
         Role userRole = Role.MEMBER;
         try {
             userRole = Role.valueOf(signUpRequest.getRole().toUpperCase());
@@ -70,14 +78,84 @@ public class AuthController {
 
         User user = new User(
                 signUpRequest.getEmail(),
+                signUpRequest.getUsername().trim().toLowerCase(),
                 encoder.encode(signUpRequest.getPassword()),
                 signUpRequest.getName(),
                 userRole
         );
+        user.setApproved(false); // default false
 
         userRepository.save(user);
 
-        return ResponseEntity.ok("User registered successfully!");
+        return ResponseEntity.ok("Registration request submitted! Your account is pending manager approval.");
+    }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<?> checkUsername(@RequestParam String username) {
+        if (username == null || username.trim().length() < 3) {
+            return ResponseEntity.badRequest().body("Error: Username must be at least 3 characters.");
+        }
+        boolean exists = userRepository.existsByUsername(username.trim().toLowerCase());
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("available", !exists);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/google-client-id")
+    public ResponseEntity<?> getGoogleClientId() {
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("clientId", googleClientId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/google-login")
+    public ResponseEntity<?> googleLogin(@RequestBody java.util.Map<String, String> request) {
+        String token = request.get("token");
+        if (token == null || token.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Google token is required!");
+        }
+        
+        String targetEmail = null;
+        
+        // Validate Google ID token via oauth2 tokeninfo api
+        try {
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + token;
+            java.util.Map<?, ?> tokenInfo = restTemplate.getForObject(url, java.util.Map.class);
+            
+            if (tokenInfo == null || tokenInfo.containsKey("error_description")) {
+                return ResponseEntity.badRequest().body("Error: Invalid Google Token!");
+            }
+            
+            targetEmail = (String) tokenInfo.get("email");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error validating Google token: " + e.getMessage());
+        }
+        
+        if (targetEmail == null) {
+            return ResponseEntity.badRequest().body("Error: Email could not be resolved.");
+        }
+        
+        java.util.Optional<User> userOpt = userRepository.findByEmail(targetEmail);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: No account found matching email " + targetEmail + ". Please sign up first.");
+        }
+        
+        User user = userOpt.get();
+        if (!user.isApproved()) {
+            return ResponseEntity.badRequest().body("Error: Your account is pending administrator approval.");
+        }
+        
+        String jwt = jwtUtils.generateJwtToken(user.getEmail(), user.getRole().name(), user.getId(), user.getName());
+        
+        return ResponseEntity.ok(new AuthResponse(
+                jwt,
+                user.getId(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getName(),
+                user.getRole().name()
+        ));
     }
 
     @GetMapping("/me")
@@ -99,6 +177,7 @@ public class AuthController {
                 null,
                 userDetails.getId(),
                 userDetails.getUsername(),
+                userDetails.getActualUsername(),
                 userDetails.getName(),
                 roleStr
         ));

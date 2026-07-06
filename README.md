@@ -62,7 +62,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173/login` in your browser.
 
 ---
 

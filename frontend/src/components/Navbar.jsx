@@ -75,6 +75,12 @@ const Navbar = ({ activePage, setActivePage }) => {
               All Reports
             </button>
             <button
+              onClick={() => setActivePage('approvals')}
+              className={`nav-link ${activePage === 'approvals' ? 'active' : ''}`}
+            >
+              Approvals
+            </button>
+            <button
               onClick={() => setActivePage('activity')}
               className={`nav-link ${activePage === 'activity' ? 'active' : ''}`}
             >
@@ -85,6 +91,12 @@ const Navbar = ({ activePage, setActivePage }) => {
               className={`nav-link ${activePage === 'projects' ? 'active' : ''}`}
             >
               Projects
+            </button>
+            <button
+              onClick={() => setActivePage('profile')}
+              className={`nav-link ${activePage === 'profile' ? 'active' : ''}`}
+            >
+              Profile
             </button>
           </>
         ) : (
@@ -106,6 +118,12 @@ const Navbar = ({ activePage, setActivePage }) => {
               className={`nav-link ${activePage === 'activity' ? 'active' : ''}`}
             >
               Activity Logs
+            </button>
+            <button
+              onClick={() => setActivePage('profile')}
+              className={`nav-link ${activePage === 'profile' ? 'active' : ''}`}
+            >
+              Profile
             </button>
           </>
         )}

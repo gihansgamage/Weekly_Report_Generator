@@ -4,16 +4,18 @@ public class AuthResponse {
     private String token;
     private Long id;
     private String email;
+    private String username;
     private String name;
     private String role;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(String token, Long id, String email, String name, String role) {
+    public AuthResponse(String token, Long id, String email, String username, String name, String role) {
         this.token = token;
         this.id = id;
         this.email = email;
+        this.username = username;
         this.name = name;
         this.role = role;
     }
@@ -40,6 +42,14 @@ public class AuthResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getName() {

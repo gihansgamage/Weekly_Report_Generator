@@ -19,7 +19,19 @@ public class RegisterRequest {
     @NotBlank
     private String role; // "MEMBER" or "MANAGER"
 
+    @NotBlank
+    @Size(min = 3, max = 50)
+    private String username;
+
     public RegisterRequest() {
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {

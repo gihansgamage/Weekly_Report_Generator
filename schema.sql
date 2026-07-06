@@ -5,9 +5,13 @@
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL CHECK (role IN ('MEMBER', 'MANAGER')),
+    approved BOOLEAN DEFAULT FALSE NOT NULL,
+    otp_code VARCHAR(6),
+    otp_expiry TIMESTAMP WITHOUT TIME ZONE,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -60,8 +64,9 @@ ON CONFLICT (name) DO NOTHING;
 -- member@example.com -> 'member123'
 -- dev@example.com -> 'member123'
 
-INSERT INTO users (email, password, name, role) VALUES
-('manager@example.com', '$2a$10$d62q/iB43Z9HkE2K8G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfUqfU', 'Jane Doe (Manager)', 'MANAGER'),
-('member@example.com', '$2a$10$Y1wH1rZ4wK5G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfUqfUqfU', 'John Smith (Member)', 'MEMBER'),
-('dev@example.com', '$2a$10$Y1wH1rZ4wK5G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfUqfUqfU', 'Alex Carter (Developer)', 'MEMBER')
+INSERT INTO users (email, username, password, name, role, approved) VALUES
+('manager@example.com', 'manager', '$2a$10$d62q/iB43Z9HkE2K8G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfU', 'Jane Doe (Manager)', 'MANAGER', true),
+('member@example.com', 'member', '$2a$10$Y1wH1rZ4wK5G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfUqfUqfU', 'John Smith (Member)', 'MEMBER', true),
+('dev@example.com', 'dev', '$2a$10$Y1wH1rZ4wK5G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfUqfUqfU', 'Alex Carter (Developer)', 'MEMBER', true),
+('gsgamage4@gmail.com', 'admin', '$2a$10$d62q/iB43Z9HkE2K8G9qHeUfX.K6w4JqUqfUfUqfUqfUqfUqfUqfU', 'System Admin (Gmail)', 'MANAGER', true)
 ON CONFLICT (email) DO NOTHING;

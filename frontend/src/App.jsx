@@ -9,6 +9,8 @@ import Projects from './pages/Projects';
 import Submissions from './pages/Submissions';
 import ActivityLogs from './pages/ActivityLogs';
 import AllReports from './pages/AllReports';
+import Approvals from './pages/Approvals';
+import Profile from './pages/Profile';
 import ChatWidget from './components/ChatWidget';
 import Toast from './components/Toast';
 import './styles/globals.css';
@@ -61,6 +63,10 @@ const MainApp = () => {
         return user.role === 'MANAGER' ? <Submissions onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
       case 'all_reports':
         return user.role === 'MANAGER' ? <AllReports onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
+      case 'approvals':
+        return user.role === 'MANAGER' ? <Approvals onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
+      case 'profile':
+        return <Profile onToast={showToast} />;
       case 'activity':
         return <ActivityLogs onToast={showToast} />;
       case 'projects':

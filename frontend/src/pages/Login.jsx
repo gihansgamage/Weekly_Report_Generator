@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ClipboardList } from 'lucide-react';
+import api from '../utils/api';
 import '../styles/Login.css';
+import '../styles/Reports.css';
 
 const Login = ({ onToast }) => {
-  const { login, register } = useAuth();
+  const { login, googleLogin, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   
   // Login Form
@@ -13,11 +15,101 @@ const Login = ({ onToast }) => {
   
   // Register Form
   const [registerEmail, setRegisterEmail] = useState('');
+  const [registerUsername, setRegisterUsername] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerName, setRegisterName] = useState('');
   const [registerRole, setRegisterRole] = useState('MEMBER'); // Default MEMBER
 
+  // Live checking states
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [usernameChecking, setUsernameChecking] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
+
+  // Google GSI Client ClientID
+  const [googleClientId, setGoogleClientId] = useState('');
+
+  // Fetch Google Client ID and initialize real Sign-In button
+  useEffect(() => {
+    let intervalId = null;
+    
+    const initGoogle = async () => {
+      try {
+        const res = await api.get('/auth/google-client-id');
+        const clientId = res.data.clientId;
+        if (!clientId) {
+          console.warn("Google Client ID is empty or not configured on the backend.");
+          return;
+        }
+        setGoogleClientId(clientId);
+        
+        // Poll for window.google to load from index.html head
+        let attempts = 0;
+        intervalId = setInterval(() => {
+          attempts++;
+          if (window.google && window.google.accounts) {
+            clearInterval(intervalId);
+            window.google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleCredentialResponse
+            });
+            window.google.accounts.id.renderButton(
+              document.getElementById("google-signin-btn"),
+              { theme: "outline", size: "large", width: 360 }
+            );
+          } else if (attempts > 50) {
+            clearInterval(intervalId);
+            console.error("Google GSI script could not be found within 5 seconds.");
+          }
+        }, 100);
+      } catch (err) {
+        console.error("Failed to load Google Client ID", err);
+      }
+    };
+
+    if (isLogin) {
+      initGoogle();
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isLogin]);
+
+  // Google token callback
+  const handleCredentialResponse = async (response) => {
+    setIsLoading(true);
+    try {
+      await googleLogin(response.credential);
+      onToast('Logged in successfully with Google!', 'success');
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.response?.data || 'Google Sign-in failed';
+      onToast(typeof errMsg === 'string' ? errMsg : 'Google login failed', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Debounced check username
+  useEffect(() => {
+    if (registerUsername.trim().length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+    setUsernameChecking(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/auth/check-username?username=${registerUsername.trim()}`);
+        setUsernameAvailable(res.data.available);
+      } catch (err) {
+        console.error(err);
+        setUsernameAvailable(false);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [registerUsername]);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +122,7 @@ const Login = ({ onToast }) => {
       await login(loginEmail, loginPassword);
       onToast('Welcome back!', 'success');
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data || 'Invalid email or password';
+      const errMsg = err.response?.data?.message || err.response?.data || 'Invalid credentials or unapproved account';
       onToast(typeof errMsg === 'string' ? errMsg : 'Login failed', 'error');
     } finally {
       setIsLoading(false);
@@ -39,8 +131,16 @@ const Login = ({ onToast }) => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!registerEmail || !registerPassword || !registerName || !registerRole) {
+    if (!registerEmail || !registerUsername || !registerPassword || !registerName || !registerRole) {
       onToast('Please fill in all fields', 'error');
+      return;
+    }
+    if (registerUsername.trim().length < 3) {
+      onToast('Username must be at least 3 characters long', 'error');
+      return;
+    }
+    if (usernameAvailable === false) {
+      onToast('Username is already taken!', 'error');
       return;
     }
     if (registerPassword.length < 6) {
@@ -49,10 +149,10 @@ const Login = ({ onToast }) => {
     }
     setIsLoading(true);
     try {
-      await register(registerEmail, registerPassword, registerName, registerRole);
-      onToast('Registration successful! Please login.', 'success');
+      await register(registerEmail, registerUsername.trim().toLowerCase(), registerPassword, registerName, registerRole);
+      onToast('Registration submitted! Awaiting administrator approval.', 'success');
       setIsLogin(true); // Switch to login tab
-      setLoginEmail(registerEmail);
+      setLoginEmail(registerUsername);
       setLoginPassword('');
     } catch (err) {
       const errMsg = err.response?.data?.message || err.response?.data || 'Registration failed';
@@ -70,10 +170,10 @@ const Login = ({ onToast }) => {
 
   return (
     <div className="login-container">
-      <div className="login-card glass-panel">
+      <div className="login-card glass-panel animate-fade-in" style={{ padding: '30px 40px' }}>
         <div className="login-logo text-gradient" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
           <ClipboardList size={32} style={{ color: 'var(--color-primary)' }} />
-          <span>Sisenco Digital</span>
+          <span style={{ fontWeight: 700 }}>Sisenco Digital</span>
         </div>
         <p className="login-subtitle">Weekly Reports & Metrics Dashboard</p>
 
@@ -97,10 +197,10 @@ const Login = ({ onToast }) => {
         {isLogin ? (
           <form onSubmit={handleLoginSubmit}>
             <div className="form-group">
-              <label>Email Address</label>
+              <label>Email Address or Username</label>
               <input 
-                type="email" 
-                placeholder="you@example.com" 
+                type="text" 
+                placeholder="you@example.com or username" 
                 value={loginEmail} 
                 onChange={(e) => setLoginEmail(e.target.value)}
                 required
@@ -133,6 +233,27 @@ const Login = ({ onToast }) => {
               />
             </div>
             <div className="form-group">
+              <label>Username</label>
+              <input 
+                type="text" 
+                placeholder="john_doe" 
+                value={registerUsername} 
+                onChange={(e) => setRegisterUsername(e.target.value)}
+                required
+              />
+              {registerUsername.trim().length >= 3 && (
+                <div style={{ fontSize: '0.8rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {usernameChecking ? (
+                    <span style={{ color: 'var(--text-secondary)' }}>Checking availability...</span>
+                  ) : usernameAvailable ? (
+                    <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>✓ Username is available</span>
+                  ) : (
+                    <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>✗ Username is already taken</span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="form-group">
               <label>Email Address</label>
               <input 
                 type="email" 
@@ -163,22 +284,32 @@ const Login = ({ onToast }) => {
                 <option value="MANAGER">Manager / Admin (Analyze Reports)</option>
               </select>
             </div>
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
+            <button type="submit" className="btn-primary" disabled={isLoading || (registerUsername.trim().length >= 3 && !usernameAvailable)}>
+              {isLoading ? 'Submitting registration...' : 'Submit Request'}
             </button>
           </form>
         )}
 
+        {/* OR Google Login Button */}
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
+          <span style={{ padding: '0 10px', fontSize: '0.8rem' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
+        </div>
+
+        {isLogin && (
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '15px' }}>
+            <div id="google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
+          </div>
+        )}
+
         <div className="demo-credentials">
           <div className="demo-credentials-title">⚡ Quick Demo Logins</div>
-          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('manager@example.com', 'manager123')}>
-            Manager: <strong>manager@example.com</strong> / <code>manager123</code> (Click to fill)
+          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('manager', 'manager123')}>
+            Manager Username: <strong>manager</strong> / <code>manager123</code> (Click to fill)
           </p>
-          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('member@example.com', 'member123')}>
-            Member: <strong>member@example.com</strong> / <code>member123</code> (Click to fill)
-          </p>
-          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('dev@example.com', 'member123')}>
-            Member 2: <strong>dev@example.com</strong> / <code>member123</code> (Click to fill)
+          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('member', 'member123')}>
+            Member Username: <strong>member</strong> / <code>member123</code> (Click to fill)
           </p>
         </div>
       </div>
