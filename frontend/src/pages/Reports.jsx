@@ -28,15 +28,10 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
   const [hoursWorked, setHoursWorked] = useState('');
   const [notes, setNotes] = useState('');
   
-  // Dynamic List Builders
-  const [tasksCompleted, setTasksCompleted] = useState([]);
-  const [taskInput, setTaskInput] = useState('');
-  
-  const [tasksPlanned, setTasksPlanned] = useState([]);
-  const [planInput, setPlanInput] = useState('');
-  
-  const [blockers, setBlockers] = useState([]);
-  const [blockerInput, setBlockerInput] = useState('');
+  // Dynamic List Builders (inline inputs, initially containing one empty string)
+  const [tasksCompleted, setTasksCompleted] = useState(['']);
+  const [tasksPlanned, setTasksPlanned] = useState(['']);
+  const [blockers, setBlockers] = useState(['']);
 
   // Mode Tracking
   const [isEditMode, setIsEditMode] = useState(false);
@@ -86,19 +81,25 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
       
       // Parse JSON inputs
       try {
-        setTasksCompleted(JSON.parse(existing.tasksCompleted));
+        const parsed = JSON.parse(existing.tasksCompleted);
+        setTasksCompleted(parsed.length > 0 ? parsed : ['']);
       } catch (e) {
-        setTasksCompleted(existing.tasksCompleted.split(';'));
+        const split = existing.tasksCompleted.split(';').map(s => s.trim()).filter(Boolean);
+        setTasksCompleted(split.length > 0 ? split : ['']);
       }
       try {
-        setTasksPlanned(JSON.parse(existing.tasksPlanned));
+        const parsed = JSON.parse(existing.tasksPlanned);
+        setTasksPlanned(parsed.length > 0 ? parsed : ['']);
       } catch (e) {
-        setTasksPlanned(existing.tasksPlanned.split(';'));
+        const split = existing.tasksPlanned.split(';').map(s => s.trim()).filter(Boolean);
+        setTasksPlanned(split.length > 0 ? split : ['']);
       }
       try {
-        setBlockers(JSON.parse(existing.blockers));
+        const parsed = JSON.parse(existing.blockers);
+        setBlockers(parsed.length > 0 ? parsed : ['']);
       } catch (e) {
-        setBlockers(existing.blockers.split(';'));
+        const split = existing.blockers.split(';').map(s => s.trim()).filter(Boolean);
+        setBlockers(split.length > 0 ? split : ['']);
       }
 
       setIsLocked(false);
@@ -113,9 +114,9 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
       setEditingReportId(null);
       setHoursWorked('');
       setNotes('');
-      setTasksCompleted([]);
-      setTasksPlanned([]);
-      setBlockers([]);
+      setTasksCompleted(['']);
+      setTasksPlanned(['']);
+      setBlockers(['']);
       setIsLocked(false);
     }
   };
@@ -125,53 +126,34 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
     setWeekStart(normalizedMonday);
   };
 
-  // Add Item Helpers
-  const addCompletedTask = (e) => {
-    e.preventDefault();
-    if (taskInput.trim()) {
-      setTasksCompleted([...tasksCompleted, taskInput.trim()]);
-      setTaskInput('');
-    }
-  };
-
-  const addPlannedTask = (e) => {
-    e.preventDefault();
-    if (planInput.trim()) {
-      setTasksPlanned([...tasksPlanned, planInput.trim()]);
-      setPlanInput('');
-    }
-  };
-
-  const addBlocker = (e) => {
-    e.preventDefault();
-    if (blockerInput.trim()) {
-      setBlockers([...blockers, blockerInput.trim()]);
-      setBlockerInput('');
-    }
-  };
-
   // Submit/Save Action
   const handleSubmitReport = async (status) => {
     if (!selectedProject) {
       onToast('Please select a project category', 'error');
       return;
     }
-    if (tasksCompleted.length === 0) {
-      onToast('Please add at least one completed task', 'error');
+
+    const activeTasks = tasksCompleted.filter(t => t.trim() !== '');
+    const activePlanned = tasksPlanned.filter(p => p.trim() !== '');
+    const activeBlockers = blockers.filter(b => b.trim() !== '');
+
+    if (activeTasks.length === 0) {
+      onToast('Please describe at least one completed task', 'error');
       return;
     }
-    if (tasksPlanned.length === 0) {
-      onToast('Please add at least one planned task for next week', 'error');
+    if (activePlanned.length === 0) {
+      onToast('Please describe at least one planned task for next week', 'error');
       return;
     }
-    // Set blockers to ["None"] if empty to satisfy non-blank constraint
-    const finalBlockers = blockers.length > 0 ? blockers : ["None"];
+    
+    // Set blockers to ["None"] if empty
+    const finalBlockers = activeBlockers.length > 0 ? activeBlockers : ["None"];
 
     const payload = {
       projectId: parseInt(selectedProject),
       weekStart: weekStart,
-      tasksCompleted: JSON.stringify(tasksCompleted),
-      tasksPlanned: JSON.stringify(tasksPlanned),
+      tasksCompleted: JSON.stringify(activeTasks),
+      tasksPlanned: JSON.stringify(activePlanned),
       blockers: JSON.stringify(finalBlockers),
       hoursWorked: hoursWorked ? parseInt(hoursWorked) : null,
       notes: notes,
@@ -244,93 +226,129 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
           {/* List Builder: Tasks Completed */}
           <div className="form-group form-field-full">
             <label style={{ fontWeight: 600 }}>Tasks Completed This Week <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-            {!isLocked && (
-              <div className="list-input-group">
-                <input 
-                  type="text" 
-                  placeholder="Describe a task completed (e.g. Fixed navigation drawer bug)"
-                  value={taskInput}
-                  onChange={(e) => setTaskInput(e.target.value)}
-                />
-                <button type="button" className="btn-add" onClick={addCompletedTask}>
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            )}
-            <div className="list-items">
-              {tasksCompleted.map((t, idx) => (
-                <div key={idx} className="list-item">
-                  <span>{t}</span>
-                  {!isLocked && (
-                    <button type="button" className="btn-remove" onClick={() => setTasksCompleted(tasksCompleted.filter((_, i) => i !== idx))}>
-                      <Trash2 size={14} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+              {tasksCompleted.map((task, idx) => (
+                <div key={idx} className="list-input-group" style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Describe a task completed (e.g. Fixed navigation drawer bug)"
+                    value={task}
+                    onChange={(e) => {
+                      const newTasks = [...tasksCompleted];
+                      newTasks[idx] = e.target.value;
+                      setTasksCompleted(newTasks);
+                    }}
+                    disabled={isLocked}
+                    style={{ flex: 1 }}
+                  />
+                  {!isLocked && tasksCompleted.length > 1 && (
+                    <button 
+                      type="button" 
+                      className="btn-remove" 
+                      onClick={() => setTasksCompleted(tasksCompleted.filter((_, i) => i !== idx))}
+                      style={{ padding: '10px 14px' }}
+                    >
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
               ))}
-              {tasksCompleted.length === 0 && <div className="empty-state">No completed tasks added yet.</div>}
+              {!isLocked && (
+                <button 
+                  type="button" 
+                  className="btn-add" 
+                  onClick={() => setTasksCompleted([...tasksCompleted, ''])}
+                  style={{ width: 'fit-content', padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}
+                >
+                  <Plus size={14} /> Add Task
+                </button>
+              )}
             </div>
           </div>
 
           {/* List Builder: Tasks Planned */}
           <div className="form-group form-field-full">
             <label style={{ fontWeight: 600 }}>Tasks Planned For Next Week <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-            {!isLocked && (
-              <div className="list-input-group">
-                <input 
-                  type="text" 
-                  placeholder="Describe a task planned (e.g. Integrate PostgreSQL database)"
-                  value={planInput}
-                  onChange={(e) => setPlanInput(e.target.value)}
-                />
-                <button type="button" className="btn-add" onClick={addPlannedTask}>
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            )}
-            <div className="list-items">
-              {tasksPlanned.map((p, idx) => (
-                <div key={idx} className="list-item">
-                  <span>{p}</span>
-                  {!isLocked && (
-                    <button type="button" className="btn-remove" onClick={() => setTasksPlanned(tasksPlanned.filter((_, i) => i !== idx))}>
-                      <Trash2 size={14} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+              {tasksPlanned.map((task, idx) => (
+                <div key={idx} className="list-input-group" style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Describe a task planned (e.g. Integrate PostgreSQL database)"
+                    value={task}
+                    onChange={(e) => {
+                      const newPlanned = [...tasksPlanned];
+                      newPlanned[idx] = e.target.value;
+                      setTasksPlanned(newPlanned);
+                    }}
+                    disabled={isLocked}
+                    style={{ flex: 1 }}
+                  />
+                  {!isLocked && tasksPlanned.length > 1 && (
+                    <button 
+                      type="button" 
+                      className="btn-remove" 
+                      onClick={() => setTasksPlanned(tasksPlanned.filter((_, i) => i !== idx))}
+                      style={{ padding: '10px 14px' }}
+                    >
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
               ))}
-              {tasksPlanned.length === 0 && <div className="empty-state">No planned tasks added yet.</div>}
+              {!isLocked && (
+                <button 
+                  type="button" 
+                  className="btn-add" 
+                  onClick={() => setTasksPlanned([...tasksPlanned, ''])}
+                  style={{ width: 'fit-content', padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}
+                >
+                  <Plus size={14} /> Add Task
+                </button>
+              )}
             </div>
           </div>
 
           {/* List Builder: Blockers */}
           <div className="form-group form-field-full">
             <label style={{ fontWeight: 600 }}>Blockers / Challenges</label>
-            {!isLocked && (
-              <div className="list-input-group">
-                <input 
-                  type="text" 
-                  placeholder="Describe blockers, or leave empty if none (e.g. Delayed API deployment)"
-                  value={blockerInput}
-                  onChange={(e) => setBlockerInput(e.target.value)}
-                />
-                <button type="button" className="btn-add" onClick={addBlocker}>
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            )}
-            <div className="list-items">
-              {blockers.map((b, idx) => (
-                <div key={idx} className="list-item">
-                  <span>{b}</span>
-                  {!isLocked && (
-                    <button type="button" className="btn-remove" onClick={() => setBlockers(blockers.filter((_, i) => i !== idx))}>
-                      <Trash2 size={14} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+              {blockers.map((blocker, idx) => (
+                <div key={idx} className="list-input-group" style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Describe blockers, or leave empty if none (e.g. Delayed API deployment)"
+                    value={blocker}
+                    onChange={(e) => {
+                      const newBlockers = [...blockers];
+                      newBlockers[idx] = e.target.value;
+                      setBlockers(newBlockers);
+                    }}
+                    disabled={isLocked}
+                    style={{ flex: 1 }}
+                  />
+                  {!isLocked && blockers.length > 1 && (
+                    <button 
+                      type="button" 
+                      className="btn-remove" 
+                      onClick={() => setBlockers(blockers.filter((_, i) => i !== idx))}
+                      style={{ padding: '10px 14px' }}
+                    >
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
               ))}
-              {blockers.length === 0 && <div className="empty-state">No blockers reported (Everything is running fine).</div>}
+              {!isLocked && (
+                <button 
+                  type="button" 
+                  className="btn-add" 
+                  onClick={() => setBlockers([...blockers, ''])}
+                  style={{ width: 'fit-content', padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}
+                >
+                  <Plus size={14} /> Add Blocker
+                </button>
+              )}
             </div>
           </div>
 
