@@ -101,11 +101,10 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
         setBlockers(existing.blockers.split(';'));
       }
 
+      setIsLocked(false);
       if (existing.status === 'SUBMITTED') {
-        setIsLocked(true);
-        onToast(`Report for the week of ${targetWeek} is submitted and locked.`, 'info');
+        onToast(`Loaded submitted report for the week of ${targetWeek}. You can edit and re-submit it.`, 'info');
       } else {
-        setIsLocked(false);
         onToast(`Loaded draft report for the week of ${targetWeek}.`, 'info');
       }
     } else {

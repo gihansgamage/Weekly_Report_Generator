@@ -252,3 +252,9 @@
   color: var(--text-secondary);
   padding: 40px 0;
 }
+
+@media (max-width: 900px) {
+  .history-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+}

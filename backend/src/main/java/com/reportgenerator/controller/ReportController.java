@@ -51,6 +51,30 @@ public class ReportController {
         return ResponseEntity.ok(reports);
     }
 
+    @GetMapping("/activity")
+    public ResponseEntity<?> getRecentActivity() {
+        List<Report> allReports = reportRepository.findAll();
+        List<java.util.Map<String, Object>> recentActivity = allReports.stream()
+                .filter(r -> "SUBMITTED".equals(r.getStatus()))
+                .sorted((a, b) -> {
+                    if (a.getSubmittedAt() == null) return 1;
+                    if (b.getSubmittedAt() == null) return -1;
+                    return b.getSubmittedAt().compareTo(a.getSubmittedAt());
+                })
+                .limit(10)
+                .map(r -> {
+                    java.util.Map<String, Object> act = new java.util.HashMap<>();
+                    act.put("id", r.getId());
+                    act.put("userName", r.getUser().getName());
+                    act.put("projectName", r.getProject().getName());
+                    act.put("weekStart", r.getWeekStart().toString());
+                    act.put("submittedAt", r.getSubmittedAt());
+                    return act;
+                })
+                .toList();
+        return ResponseEntity.ok(recentActivity);
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('MANAGER')")
     public ResponseEntity<?> getFilteredReports(
@@ -123,10 +147,6 @@ public class ReportController {
             return ResponseEntity.status(403).body("Error: You do not have permission to modify this report.");
         }
 
-        if (report.getStatus().equals("SUBMITTED") && !isManager) {
-            return ResponseEntity.badRequest().body("Error: This report has already been submitted and is locked.");
-        }
-
         Optional<Project> projectOpt = projectRepository.findById(request.getProjectId());
         if (projectOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Project category not found");
@@ -154,7 +174,7 @@ public class ReportController {
             return ResponseEntity.badRequest().body("Error: Invalid report status");
         }
 
-        if (report.getStatus().equals("DRAFT") && reqStatus.equals("SUBMITTED")) {
+        if (reqStatus.equals("SUBMITTED")) {
             report.setSubmittedAt(LocalDateTime.now());
         }
         report.setStatus(reqStatus);

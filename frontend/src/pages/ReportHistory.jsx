@@ -9,6 +9,8 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -22,8 +24,21 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
     }
   };
 
+  const fetchActivity = async () => {
+    setLoadingActivity(true);
+    try {
+      const res = await api.get('/reports/activity');
+      setActivity(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
   useEffect(() => {
     fetchHistory();
+    fetchActivity();
   }, []);
 
   const handleDelete = async (id, e) => {
@@ -165,7 +180,7 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
   };
 
   return (
-    <div className="reports-layout">
+    <div className="reports-layout" style={{ maxWidth: '1280px' }}>
       <div className="page-header">
         <div>
           <h2 className="page-title text-gradient">Report History Logs</h2>
@@ -175,36 +190,39 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
         </div>
       </div>
 
-      <div className="history-card glass-panel">
-        {loading ? (
-          <div className="empty-state">Loading history logs...</div>
-        ) : history.length === 0 ? (
-          <div className="empty-state">No reports submitted or drafted yet.</div>
-        ) : (
-          <div className="history-list">
-            {history.map((report) => (
-              <div 
-                key={report.id} 
-                className="history-item" 
-                onClick={() => setSelectedReport(report)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-                    <Calendar size={16} style={{ color: 'var(--color-primary)' }} />
-                    <span>Week of {report.weekStart}</span>
-                    <span className={`badge badge-${report.status.toLowerCase()}`}>
-                      {report.status}
-                    </span>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px', marginTop: '20px' }} className="history-grid-layout">
+        <div className="history-card glass-panel" style={{ height: 'fit-content' }}>
+          {loading ? (
+            <div className="empty-state">Loading history logs...</div>
+          ) : history.length === 0 ? (
+            <div className="empty-state">No reports submitted or drafted yet.</div>
+          ) : (
+            <div className="history-list">
+              {history.map((report) => (
+                <div 
+                  key={report.id} 
+                  className="history-item" 
+                  onClick={() => setSelectedReport(report)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                      <Calendar size={16} style={{ color: 'var(--color-primary)' }} />
+                      <span>Week of {report.weekStart}</span>
+                      <span className={`badge badge-${report.status.toLowerCase()}`}>
+                        {report.status}
+                      </span>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      Project: <strong style={{ color: 'var(--text-primary)' }}>{report.project.name}</strong>
+                      {report.hoursWorked && ` | Hours: ${report.hoursWorked} hrs`}
+                    </div>
                   </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    Project: <strong style={{ color: 'var(--text-primary)' }}>{report.project.name}</strong>
-                    {report.hoursWorked && ` | Hours: ${report.hoursWorked} hrs`}
-                  </div>
-                </div>
 
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  {report.status === 'DRAFT' ? (
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <button type="button" className="btn-add" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setSelectedReport(report)}>
+                      <Eye size={14} /> View
+                    </button>
                     <button 
                       type="button" 
                       className="btn-add" 
@@ -214,28 +232,58 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
                         onEditDraft(report.weekStart);
                       }}
                     >
-                      Edit & Submit
+                      Edit
                     </button>
-                  ) : (
-                    <button type="button" className="btn-add" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setSelectedReport(report)}>
-                      <Eye size={14} /> View
-                    </button>
-                  )}
-                  {report.status === 'DRAFT' && (
-                    <button 
-                      type="button" 
-                      className="btn-remove" 
-                      onClick={(e) => handleDelete(report.id, e)}
-                      title="Delete Draft"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                    {report.status === 'DRAFT' && (
+                      <button 
+                        type="button" 
+                        className="btn-remove" 
+                        onClick={(e) => handleDelete(report.id, e)}
+                        title="Delete Draft"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Activity Feed for all users */}
+        <div className="activity-card glass-panel" style={{ height: 'fit-content', padding: '24px' }}>
+          <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1.1rem', fontWeight: 600 }}>
+            <Clock size={18} style={{ color: 'var(--color-primary)' }} />
+            Recent Activity Logs
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px', marginBottom: '16px' }}>
+            Latest updates across all team members.
+          </p>
+          <div className="activity-feed">
+            {loadingActivity ? (
+              <div className="empty-state" style={{ padding: '20px 0' }}>Loading activity logs...</div>
+            ) : activity.length === 0 ? (
+              <div className="empty-state" style={{ padding: '20px 0' }}>No recent submissions.</div>
+            ) : (
+              activity.map((act) => (
+                <div key={act.id} className="activity-item" style={{ background: '#ffffff', border: '1px solid var(--border-glass)', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px', fontSize: '0.85rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                  <div className="activity-meta" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="activity-title" style={{ color: 'var(--text-primary)' }}>
+                      <strong>{act.userName}</strong> submitted weekly report for <strong>{act.projectName}</strong>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                      Week of {act.weekStart}
+                    </div>
+                    <div className="activity-time" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      {new Date(act.submittedAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modal Dialog Details overlay */}
@@ -315,7 +363,7 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
               </div>
             )}
 
-            {selectedReport.status === 'DRAFT' && (
+            {(selectedReport.status === 'DRAFT' || selectedReport.status === 'SUBMITTED') && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
                 <button
                   type="button"
@@ -326,7 +374,7 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
                     onEditDraft(selectedReport.weekStart);
                   }}
                 >
-                  Edit & Submit Draft
+                  Edit & Re-Submit Report
                 </button>
               </div>
             )}
