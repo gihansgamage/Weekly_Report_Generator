@@ -10,6 +10,8 @@ import {
 } from 'recharts';
 import '../styles/Dashboard.css';
 import '../styles/Reports.css';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const Dashboard = ({ onToast }) => {
   // Filters State
@@ -138,205 +140,116 @@ const Dashboard = ({ onToast }) => {
   };
 
   const handleDownloadReport = (report) => {
+    // 1. Create a styled container in DOM to render our premium card
+    const element = document.createElement('div');
+    element.style.position = 'absolute';
+    element.style.left = '-9999px'; // off screen
+    element.style.width = '800px';
+    element.style.background = '#ffffff';
+    element.style.color = '#1f2937';
+    element.style.fontFamily = 'Outfit, sans-serif';
+    element.style.padding = '40px';
+    element.style.lineHeight = '1.6';
+
     const completedTasks = parseJsonList(report.tasksCompleted);
     const plannedTasks = parseJsonList(report.tasksPlanned);
     const blockersList = parseJsonList(report.blockers);
     const hasBlockers = blockersList.some(b => b.toLowerCase() !== 'none');
     
-    const completedHtml = completedTasks.map(t => `<li>${t}</li>`).join('');
-    const plannedHtml = plannedTasks.map(p => `<li>${p}</li>`).join('');
-    const blockersHtml = blockersList.map(b => `<li class="${b.toLowerCase() !== 'none' ? 'blocker-warn' : ''}">${b}</li>`).join('');
+    const completedHtml = completedTasks.map(t => `<li style="margin-bottom: 8px; font-size: 0.95rem;">${t}</li>`).join('');
+    const plannedHtml = plannedTasks.map(p => `<li style="margin-bottom: 8px; font-size: 0.95rem;">${p}</li>`).join('');
+    const blockersHtml = blockersList.map(b => `<li class="${b.toLowerCase() !== 'none' ? 'blocker-warn' : ''}" style="margin-bottom: 8px; font-size: 0.95rem; ${b.toLowerCase() !== 'none' ? 'color: #dc2626; font-weight: 500;' : ''}">${b}</li>`).join('');
     
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Weekly Work Report - ${report.user.name}</title>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-          * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-          }
-          body {
-            font-family: 'Outfit', sans-serif;
-            color: #1f2937;
-            background: #f4f6f9;
-            padding: 40px 20px;
-            line-height: 1.6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-          }
-          .card {
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            width: 100%;
-            max-width: 800px;
-            padding: 40px;
-            border: 1px solid #e5e7eb;
-          }
-          .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #1ba883;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-          }
-          .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-          }
-          .logo-text {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #1ba883;
-          }
-          .report-tag {
-            background: rgba(27, 168, 131, 0.1);
-            color: #1ba883;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-          }
-          .meta-item {
-            font-size: 0.95rem;
-          }
-          .meta-item strong {
-            color: #4b5563;
-          }
-          .section {
-            margin-bottom: 25px;
-          }
-          .section h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #111827;
-            border-left: 4px solid #1ba883;
-            padding-left: 10px;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          .section-blockers h3 {
-            border-left-color: ${hasBlockers ? '#dc2626' : '#1ba883'};
-          }
-          ul {
-            padding-left: 20px;
-          }
-          li {
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-          }
-          .blocker-warn {
-            color: #dc2626;
-            font-weight: 500;
-          }
-          .notes-box {
-            background: #f3f4f6;
-            border-radius: 8px;
-            padding: 15px;
-            font-size: 0.95rem;
-            white-space: pre-wrap;
-            border: 1px solid #e5e7eb;
-          }
-          .footer {
-            margin-top: 50px;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 15px;
-            text-align: center;
-            font-size: 0.8rem;
-            color: #9ca3af;
-          }
-          
-          /* Print Styling */
-          @media print {
-            body {
-              background: #ffffff;
-              padding: 0;
-            }
-            .card {
-              box-shadow: none;
-              border: none;
-              padding: 0;
-              max-width: 100%;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <div class="header">
-            <div class="logo-area">
-              <span class="logo-text">Sisenco Digital</span>
-            </div>
-            <span class="report-tag">Weekly Status Report</span>
+    element.innerHTML = `
+      <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px; background: #ffffff; box-shadow: 0 10px 25px rgba(0,0,0,0.02);">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1ba883; padding-bottom: 20px; margin-bottom: 30px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #1ba883;">Sisenco Digital</span>
           </div>
-
-          <div class="meta-grid">
-            <div class="meta-item"><strong>Team Member:</strong> ${report.user.name} (${report.user.email})</div>
-            <div class="meta-item"><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
-            <div class="meta-item"><strong>Project / Category:</strong> ${report.project.name}</div>
-            <div class="meta-item"><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
-          </div>
-
-          <div class="section">
-            <h3>Tasks Completed This Week</h3>
-            <ul>${completedHtml}</ul>
-          </div>
-
-          <div class="section">
-            <h3>Planned Tasks For Next Week</h3>
-            <ul>${plannedHtml}</ul>
-          </div>
-
-          <div class="section section-blockers">
-            <h3>Blockers & Challenges</h3>
-            <ul>${blockersHtml}</ul>
-          </div>
-
-          ${report.notes ? `
-          <div class="section">
-            <h3>Additional Notes</h3>
-            <div class="notes-box">${report.notes}</div>
-          </div>
-          ` : ''}
-
-          <div class="footer">
-            This report is a system-generated document from Sisenco Digital Weekly Work Planner. 
-            Generated on: ${new Date().toLocaleString()}
-          </div>
+          <span style="background: rgba(27, 168, 131, 0.1); color: #1ba883; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Weekly Status Report</span>
         </div>
-      </body>
-      </html>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 30px; font-size: 0.95rem;">
+          <div><strong>Team Member:</strong> ${report.user.name} (${report.user.email})</div>
+          <div><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
+          <div><strong>Project / Category:</strong> ${report.project.name}</div>
+          <div><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid #1ba883; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tasks Completed This Week</h3>
+          <ul style="padding-left: 20px;">${completedHtml}</ul>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid #1ba883; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Planned Tasks For Next Week</h3>
+          <ul style="padding-left: 20px;">${plannedHtml}</ul>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid ${hasBlockers ? '#dc2626' : '#1ba883'}; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Blockers & Challenges</h3>
+          <ul style="padding-left: 20px;">${blockersHtml}</ul>
+        </div>
+
+        ${report.notes ? `
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid #1ba883; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Additional Notes</h3>
+          <div style="background: #f3f4f6; border-radius: 8px; padding: 15px; font-size: 0.95rem; white-space: pre-wrap; border: 1px solid #e5e7eb;">${report.notes}</div>
+        </div>
+        ` : ''}
+
+        <div style="margin-top: 50px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 0.8rem; color: #9ca3af;">
+          This report is a system-generated document from Sisenco Digital Weekly Work Planner.<br>
+          Generated on: ${new Date().toLocaleString()}
+        </div>
+      </div>
     `;
-    
-    const element = document.createElement("a");
-    const file = new Blob([htmlContent], {type: 'text/html'});
-    element.href = URL.createObjectURL(file);
-    element.download = `Weekly_Report_${report.user.name.replace(/\s+/g, '_')}_${report.weekStart}.html`;
+
     document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    onToast('Report downloaded successfully!', 'success');
+
+    onToast('Generating PDF, please wait...', 'info');
+
+    // Wait a brief moment to ensure fonts/css render
+    setTimeout(() => {
+      html2canvas(element, { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const pdf = new jsPDF({
+          orientation: 'p',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
+        const fileName = `Weekly_Report_${report.user.name.replace(/\s+/g, '_')}_${report.weekStart}.pdf`;
+        pdf.save(fileName);
+        document.body.removeChild(element);
+        onToast('Report downloaded successfully as PDF!', 'success');
+      }).catch((err) => {
+        console.error(err);
+        document.body.removeChild(element);
+        onToast('Failed to generate PDF file', 'error');
+      });
+    }, 200);
   };
 
   // Charts data configurations
