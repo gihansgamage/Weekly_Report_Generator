@@ -433,14 +433,14 @@ const Login = ({ onToast }) => {
         {/* OR Google Login Button - only shown on Login tab */}
         {isLogin && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0 15px 0', color: 'var(--text-secondary)' }}>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
               <span style={{ padding: '0 10px', fontSize: '0.8rem' }}>OR</span>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '15px' }}>
-              <div id="google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', margin: '10px 0 20px 0' }}>
+              <div id="google-signin-btn" style={{ width: '360px', minHeight: '40px', display: 'flex', justifyContent: 'center' }}></div>
             </div>
           </>
         )}

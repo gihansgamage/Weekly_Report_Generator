@@ -36,6 +36,9 @@ public class ReportController {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private com.reportgenerator.repository.ActivityLogRepository activityLogRepository;
+
     private LocalDate getMondayOfWeek(LocalDate date) {
         return date.with(DayOfWeek.MONDAY);
     }
@@ -53,8 +56,10 @@ public class ReportController {
 
     @GetMapping("/activity")
     public ResponseEntity<?> getRecentActivity() {
-        List<Report> allReports = reportRepository.findAll();
-        List<java.util.Map<String, Object>> recentActivity = allReports.stream()
+        List<com.reportgenerator.model.ActivityLog> logs = activityLogRepository.findAllByOrderByTimestampDesc();
+        if (logs.isEmpty()) {
+            List<Report> allReports = reportRepository.findAll();
+            return ResponseEntity.ok(allReports.stream()
                 .filter(r -> "SUBMITTED".equals(r.getStatus()))
                 .sorted((a, b) -> {
                     if (a.getSubmittedAt() == null) return 1;
@@ -62,17 +67,10 @@ public class ReportController {
                     return b.getSubmittedAt().compareTo(a.getSubmittedAt());
                 })
                 .limit(10)
-                .map(r -> {
-                    java.util.Map<String, Object> act = new java.util.HashMap<>();
-                    act.put("id", r.getId());
-                    act.put("userName", r.getUser().getName());
-                    act.put("projectName", r.getProject().getName());
-                    act.put("weekStart", r.getWeekStart().toString());
-                    act.put("submittedAt", r.getSubmittedAt());
-                    return act;
-                })
-                .toList();
-        return ResponseEntity.ok(recentActivity);
+                .map(r -> new com.reportgenerator.model.ActivityLog(r.getUser().getName() + " submitted weekly report for " + r.getProject().getName(), "REPORT_SUBMISSION"))
+                .toList());
+        }
+        return ResponseEntity.ok(logs);
     }
 
     @GetMapping
@@ -129,6 +127,17 @@ public class ReportController {
         }
 
         Report savedReport = reportRepository.save(report);
+
+        if (reqStatus.equals("SUBMITTED")) {
+            try {
+                activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                    savedReport.getUser().getName() + " submitted weekly report for " + savedReport.getProject().getName(), 
+                    "REPORT_SUBMISSION"
+                ));
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+            }
+        }
         return ResponseEntity.ok(savedReport);
     }
 
@@ -181,6 +190,17 @@ public class ReportController {
         report.setStatus(reqStatus);
 
         Report updatedReport = reportRepository.save(report);
+
+        if (reqStatus.equals("SUBMITTED")) {
+            try {
+                activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                    updatedReport.getUser().getName() + " submitted weekly report for " + updatedReport.getProject().getName(), 
+                    "REPORT_SUBMISSION"
+                ));
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+            }
+        }
         return ResponseEntity.ok(updatedReport);
     }
 

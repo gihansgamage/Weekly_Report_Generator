@@ -41,6 +41,9 @@ public class AuthController {
     @Autowired
     private com.reportgenerator.service.EmailService emailService;
 
+    @Autowired
+    private com.reportgenerator.repository.ActivityLogRepository activityLogRepository;
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -86,9 +89,17 @@ public class AuthController {
                 signUpRequest.getName(),
                 userRole
         );
-        user.setApproved(false); // default false
-
         userRepository.save(user);
+
+        // Save activity log
+        try {
+            activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                "New user registration request submitted by: " + user.getName() + " (" + user.getEmail() + ")", 
+                "USER_REGISTRATION"
+            ));
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+        }
 
         // 1. Send registration acknowledgement email to the user
         try {

@@ -93,14 +93,24 @@ const ActivityLogs = ({ onToast }) => {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                      <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{act.userName}</span> submitted weekly report for <span style={{ fontWeight: 600 }}>{act.projectName}</span>
+                      {act.details ? (
+                        act.details
+                      ) : (
+                        <>
+                          <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{act.userName}</span> submitted weekly report for <span style={{ fontWeight: 600 }}>{act.projectName}</span>
+                        </>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '15px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      <span>Week Starting: <strong>{act.weekStart}</strong></span>
-                      <span>•</span>
+                      {act.weekStart && (
+                        <>
+                          <span>Week Starting: <strong>{act.weekStart}</strong></span>
+                          <span>•</span>
+                        </>
+                      )}
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={12} />
-                        {new Date(act.submittedAt).toLocaleString()}
+                        {new Date(act.timestamp || act.submittedAt).toLocaleString()}
                       </span>
                     </div>
                   </div>

@@ -23,6 +23,9 @@ public class AdminController {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private com.reportgenerator.repository.ActivityLogRepository activityLogRepository;
+
     @GetMapping("/registrations")
     public ResponseEntity<?> getPendingRegistrations() {
         List<User> pendingUsers = userRepository.findByApprovedFalse();
@@ -44,6 +47,16 @@ public class AdminController {
         user.setApproved(true);
         userRepository.save(user);
 
+        // Save activity log
+        try {
+            activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                "Registration request for " + user.getName() + " approved by Administrator.", 
+                "USER_APPROVAL"
+            ));
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+        }
+
         // Send confirmation email
         emailService.sendRegistrationApprovalEmail(user.getEmail(), user.getName());
 
@@ -63,6 +76,17 @@ public class AdminController {
         }
 
         userRepository.delete(user);
+
+        // Save activity log
+        try {
+            activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                "Registration request for " + user.getName() + " declined by Administrator.", 
+                "USER_DECLINE"
+            ));
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+        }
+
         return ResponseEntity.ok("Registration request declined and deleted successfully.");
     }
 }

@@ -29,6 +29,9 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.reportgenerator.repository.ActivityLogRepository activityLogRepository;
+
     @PostMapping("/request-otp")
     public ResponseEntity<?> requestOtp(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -110,6 +113,16 @@ public class UserController {
         user.setOtpCode(null);
         user.setOtpExpiry(null);
         userRepository.save(user);
+
+        // Save activity log
+        try {
+            activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                "Profile credentials updated for: " + user.getName() + " (@" + user.getUsername() + ")", 
+                "PROFILE_UPDATE"
+            ));
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+        }
 
         return ResponseEntity.ok("Profile updated successfully.");
     }

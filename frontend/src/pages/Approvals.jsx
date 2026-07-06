@@ -79,9 +79,9 @@ const Approvals = ({ onToast }) => {
               <thead>
                 <tr>
                   <th>Full Name</th>
-                  <th>Username</th>
                   <th>Email Address</th>
                   <th>Requested Role</th>
+                  <th>Request Date & Time</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -91,13 +91,13 @@ const Approvals = ({ onToast }) => {
                     <td>
                       <strong style={{ color: 'var(--text-primary)' }}>{reg.name}</strong>
                     </td>
-                    <td><code>{reg.username}</code></td>
                     <td>{reg.email}</td>
                     <td>
                       <span className={`badge badge-${reg.role.toLowerCase() === 'manager' ? 'submitted' : 'draft'}`}>
                         {reg.role}
                       </span>
                     </td>
+                    <td>{reg.createdAt ? new Date(reg.createdAt).toLocaleString() : 'N/A'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '12px' }}>
                         <button
