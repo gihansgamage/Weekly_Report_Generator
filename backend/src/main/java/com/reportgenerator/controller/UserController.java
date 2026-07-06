@@ -52,57 +52,12 @@ public class UserController {
         return ResponseEntity.ok("Verification OTP code sent to your email.");
     }
 
-    @PutMapping("/update-username")
-    public ResponseEntity<?> updateUsername(@RequestBody Map<String, String> request, Authentication authentication) {
+    @PutMapping("/update")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> request, Authentication authentication) {
         String newUsername = request.get("username");
-        String otp = request.get("otp");
-
-        if (newUsername == null || newUsername.trim().length() < 3) {
-            return ResponseEntity.badRequest().body("Error: Username must be at least 3 characters.");
-        }
-        if (otp == null || otp.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("Error: OTP is required.");
-        }
-
-        newUsername = newUsername.trim().toLowerCase();
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        Optional<User> userOpt = userRepository.findById(userDetails.getId());
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        User user = userOpt.get();
-
-        // Validate OTP
-        if (user.getOtpCode() == null || !user.getOtpCode().equals(otp.trim())) {
-            return ResponseEntity.badRequest().body("Error: Invalid verification OTP code.");
-        }
-        if (user.getOtpExpiry() == null || LocalDateTime.now().isAfter(user.getOtpExpiry())) {
-            return ResponseEntity.badRequest().body("Error: Verification OTP code has expired.");
-        }
-
-        // Check uniqueness
-        if (userRepository.existsByUsername(newUsername) && !user.getUsername().equals(newUsername)) {
-            return ResponseEntity.badRequest().body("Error: Username is already in use!");
-        }
-
-        user.setUsername(newUsername);
-        user.setOtpCode(null); // Clear OTP
-        user.setOtpExpiry(null);
-        userRepository.save(user);
-
-        return ResponseEntity.ok("Username updated successfully.");
-    }
-
-    @PutMapping("/update-password")
-    public ResponseEntity<?> updatePassword(@RequestBody Map<String, String> request, Authentication authentication) {
         String newPassword = request.get("password");
         String otp = request.get("otp");
 
-        if (newPassword == null || newPassword.trim().length() < 6) {
-            return ResponseEntity.badRequest().body("Error: Password must be at least 6 characters.");
-        }
         if (otp == null || otp.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Error: OTP is required.");
         }
@@ -123,11 +78,39 @@ public class UserController {
             return ResponseEntity.badRequest().body("Error: Verification OTP code has expired.");
         }
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setOtpCode(null); // Clear OTP
+        boolean updated = false;
+
+        // 1. Process username update if provided
+        if (newUsername != null && !newUsername.trim().isEmpty() && !newUsername.trim().equalsIgnoreCase(user.getUsername())) {
+            newUsername = newUsername.trim().toLowerCase();
+            if (newUsername.length() < 3) {
+                return ResponseEntity.badRequest().body("Error: Username must be at least 3 characters.");
+            }
+            if (userRepository.existsByUsername(newUsername)) {
+                return ResponseEntity.badRequest().body("Error: Username is already in use!");
+            }
+            user.setUsername(newUsername);
+            updated = true;
+        }
+
+        // 2. Process password update if provided
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            if (newPassword.length() < 6) {
+                return ResponseEntity.badRequest().body("Error: Password must be at least 6 characters.");
+            }
+            user.setPassword(passwordEncoder.encode(newPassword));
+            updated = true;
+        }
+
+        if (!updated) {
+            return ResponseEntity.badRequest().body("Error: No username or password changes provided.");
+        }
+
+        // Clear OTP
+        user.setOtpCode(null);
         user.setOtpExpiry(null);
         userRepository.save(user);
 
-        return ResponseEntity.ok("Password updated successfully.");
+        return ResponseEntity.ok("Profile updated successfully.");
     }
 }
