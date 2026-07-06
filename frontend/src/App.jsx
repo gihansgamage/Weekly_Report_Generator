@@ -14,6 +14,7 @@ const MainApp = () => {
   const { user, loading } = useAuth();
   const [activePage, setActivePage] = useState('');
   const [toast, setToast] = useState(null);
+  const [editingDraftWeek, setEditingDraftWeek] = useState(null);
 
   React.useEffect(() => {
     if (user) {
@@ -52,15 +53,18 @@ const MainApp = () => {
   const renderActivePage = () => {
     switch (activePage) {
       case 'dashboard':
-        return user.role === 'MANAGER' ? <Dashboard onToast={showToast} /> : <Reports onToast={showToast} />;
+        return user.role === 'MANAGER' ? <Dashboard onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
       case 'projects':
-        return user.role === 'MANAGER' ? <Projects onToast={showToast} /> : <Reports onToast={showToast} />;
+        return user.role === 'MANAGER' ? <Projects onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
       case 'reports':
-        return <Reports onToast={showToast} />;
+        return <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
       case 'history':
-        return <ReportHistory onToast={showToast} />;
+        return <ReportHistory onToast={showToast} onEditDraft={(week) => {
+          setEditingDraftWeek(week);
+          setActivePage('reports');
+        }} />;
       default:
-        return user.role === 'MANAGER' ? <Dashboard onToast={showToast} /> : <Reports onToast={showToast} />;
+        return user.role === 'MANAGER' ? <Dashboard onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
     }
   };
 

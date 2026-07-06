@@ -3,7 +3,7 @@ import api from '../utils/api';
 import { Plus, Trash2, Calendar, FileText, Lock, Save, Send } from 'lucide-react';
 import '../styles/Reports.css';
 
-const Reports = ({ onToast }) => {
+const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   
@@ -18,6 +18,13 @@ const Reports = ({ onToast }) => {
   };
 
   const [weekStart, setWeekStart] = useState(getMonday(new Date()));
+
+  useEffect(() => {
+    if (editingDraftWeek) {
+      setWeekStart(editingDraftWeek);
+      setEditingDraftWeek(null);
+    }
+  }, [editingDraftWeek]);
   const [hoursWorked, setHoursWorked] = useState('');
   const [notes, setNotes] = useState('');
   

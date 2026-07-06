@@ -5,7 +5,7 @@ import '../styles/Reports.css';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const ReportHistory = ({ onToast }) => {
+const ReportHistory = ({ onToast, onEditDraft }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -204,9 +204,23 @@ const ReportHistory = ({ onToast }) => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <button type="button" className="btn-add" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setSelectedReport(report)}>
-                    <Eye size={14} /> View
-                  </button>
+                  {report.status === 'DRAFT' ? (
+                    <button 
+                      type="button" 
+                      className="btn-add" 
+                      style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--color-primary)', color: '#ffffff' }} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditDraft(report.weekStart);
+                      }}
+                    >
+                      Edit & Submit
+                    </button>
+                  ) : (
+                    <button type="button" className="btn-add" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setSelectedReport(report)}>
+                      <Eye size={14} /> View
+                    </button>
+                  )}
                   {report.status === 'DRAFT' && (
                     <button 
                       type="button" 
@@ -298,6 +312,22 @@ const ReportHistory = ({ onToast }) => {
                   Additional Notes
                 </h4>
                 <p style={{ whiteSpace: 'pre-wrap' }}>{selectedReport.notes}</p>
+              </div>
+            )}
+
+            {selectedReport.status === 'DRAFT' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ width: 'auto', padding: '10px 20px', marginTop: 0 }}
+                  onClick={() => {
+                    setSelectedReport(null);
+                    onEditDraft(selectedReport.weekStart);
+                  }}
+                >
+                  Edit & Submit Draft
+                </button>
               </div>
             )}
           </div>
