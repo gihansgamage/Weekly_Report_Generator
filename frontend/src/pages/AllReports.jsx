@@ -299,21 +299,7 @@ const AllReports = ({ onToast }) => {
                     <tr key={rep.id}>
                       <td>Week of {rep.weekStart}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {!rep.readByManager && rep.status === 'SUBMITTED' && (
-                            <span 
-                              style={{ 
-                                width: '8px', 
-                                height: '8px', 
-                                background: 'var(--color-danger)', 
-                                borderRadius: '50%', 
-                                display: 'inline-block' 
-                              }} 
-                              title="Unread Submission"
-                            />
-                          )}
-                          <strong>{rep.user.name}</strong>
-                        </div>
+                        <strong>{rep.user.name}</strong>
                       </td>
                       <td>{rep.project.name}</td>
                       <td>

@@ -79,6 +79,7 @@ const Submissions = ({ onToast }) => {
         // Mark as read in backend
         if (!rep.readByManager) {
           await api.put(`/reports/${rep.id}/read`);
+          window.dispatchEvent(new Event('reportRead'));
           fetchStats();
         }
       } else {
