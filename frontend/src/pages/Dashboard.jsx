@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { 
   Users, CheckCircle2, AlertOctagon, Filter, Eye, RefreshCw, 
-  BarChart4, CalendarDays, Briefcase, FileClock, X, Clock, BookOpen
+  BarChart4, CalendarDays, Briefcase, FileClock, X, Clock, BookOpen, Download
 } from 'lucide-react';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -135,6 +135,197 @@ const Dashboard = ({ onToast }) => {
     } catch (e) {
       return jsonStr.split(';').filter(x => x.trim() !== '');
     }
+  };
+
+  const handleDownloadReport = (report) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      onToast('Popup blocker prevented download. Please allow popups.', 'error');
+      return;
+    }
+    
+    const completedTasks = parseJsonList(report.tasksCompleted);
+    const plannedTasks = parseJsonList(report.tasksPlanned);
+    const blockersList = parseJsonList(report.blockers);
+    const hasBlockers = blockersList.some(b => b.toLowerCase() !== 'none');
+    
+    const completedHtml = completedTasks.map(t => `<li>${t}</li>`).join('');
+    const plannedHtml = plannedTasks.map(p => `<li>${p}</li>`).join('');
+    const blockersHtml = blockersList.map(b => `<li class="${b.toLowerCase() !== 'none' ? 'blocker-warn' : ''}">${b}</li>`).join('');
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Weekly Work Report - ${report.user.name}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: 'Outfit', sans-serif;
+            color: #1f2937;
+            background: #ffffff;
+            padding: 40px;
+            line-height: 1.6;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1ba883;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .logo-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1ba883;
+          }
+          .report-tag {
+            background: rgba(27, 168, 131, 0.1);
+            color: #1ba883;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+          }
+          .meta-item {
+            font-size: 0.95rem;
+          }
+          .meta-item strong {
+            color: #4b5563;
+          }
+          .section {
+            margin-bottom: 25px;
+          }
+          .section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #111827;
+            border-left: 4px solid #1ba883;
+            padding-left: 10px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .section-blockers h3 {
+            border-left-color: ${hasBlockers ? '#dc2626' : '#1ba883'};
+          }
+          ul {
+            padding-left: 20px;
+          }
+          li {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+          }
+          .blocker-warn {
+            color: #dc2626;
+            font-weight: 500;
+          }
+          .notes-box {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+            border: 1px solid #e5e7eb;
+          }
+          .footer {
+            margin-top: 50px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #9ca3af;
+          }
+          @media print {
+            body {
+              padding: 20px;
+            }
+            .no-print {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo-area">
+            <span class="logo-text">Sisenco Digital</span>
+          </div>
+          <span class="report-tag">Weekly Status Report</span>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item"><strong>Team Member:</strong> ${report.user.name} (${report.user.email})</div>
+          <div class="meta-item"><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
+          <div class="meta-item"><strong>Project / Category:</strong> ${report.project.name}</div>
+          <div class="meta-item"><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
+        </div>
+
+        <div class="section">
+          <h3>Tasks Completed This Week</h3>
+          <ul>${completedHtml}</ul>
+        </div>
+
+        <div class="section">
+          <h3>Planned Tasks For Next Week</h3>
+          <ul>${plannedHtml}</ul>
+        </div>
+
+        <div class="section section-blockers">
+          <h3>Blockers & Challenges</h3>
+          <ul>${blockersHtml}</ul>
+        </div>
+
+        ${report.notes ? `
+        <div class="section">
+          <h3>Additional Notes</h3>
+          <div class="notes-box">${report.notes}</div>
+        </div>
+        ` : ''}
+
+        <div class="footer">
+          This report is a system-generated document from Sisenco Digital Weekly Work Planner. 
+          Generated on: ${new Date().toLocaleString()}
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              window.close();
+            }, 300);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // Charts data configurations
@@ -478,6 +669,16 @@ const Dashboard = ({ onToast }) => {
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>
                   Author: <strong>{selectedReport.user.name}</strong> ({selectedReport.user.email}) | Week: {selectedReport.weekStart}
                 </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto', marginRight: '16px' }}>
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  style={{ width: 'auto', padding: '8px 16px', fontSize: '0.85rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => handleDownloadReport(selectedReport)}
+                >
+                  <Download size={14} /> Download PDF
+                </button>
               </div>
               <button className="modal-close" onClick={() => setSelectedReport(null)}>&times;</button>
             </div>
