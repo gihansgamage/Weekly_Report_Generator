@@ -138,12 +138,6 @@ const Dashboard = ({ onToast }) => {
   };
 
   const handleDownloadReport = (report) => {
-    const printWindow = window.open('', '_blank', 'width=800,height=900');
-    if (!printWindow) {
-      onToast('Popup blocker prevented download. Please allow popups.', 'error');
-      return;
-    }
-    
     const completedTasks = parseJsonList(report.tasksCompleted);
     const plannedTasks = parseJsonList(report.tasksPlanned);
     const blockersList = parseJsonList(report.blockers);
@@ -168,9 +162,22 @@ const Dashboard = ({ onToast }) => {
           body {
             font-family: 'Outfit', sans-serif;
             color: #1f2937;
-            background: #ffffff;
-            padding: 40px;
+            background: #f4f6f9;
+            padding: 40px 20px;
             line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+          }
+          .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            border: 1px solid #e5e7eb;
           }
           .header {
             display: flex;
@@ -259,73 +266,77 @@ const Dashboard = ({ onToast }) => {
             font-size: 0.8rem;
             color: #9ca3af;
           }
+          
+          /* Print Styling */
           @media print {
             body {
-              padding: 20px;
+              background: #ffffff;
+              padding: 0;
             }
-            .no-print {
-              display: none;
+            .card {
+              box-shadow: none;
+              border: none;
+              padding: 0;
+              max-width: 100%;
             }
           }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="logo-area">
-            <span class="logo-text">Sisenco Digital</span>
+        <div class="card">
+          <div class="header">
+            <div class="logo-area">
+              <span class="logo-text">Sisenco Digital</span>
+            </div>
+            <span class="report-tag">Weekly Status Report</span>
           </div>
-          <span class="report-tag">Weekly Status Report</span>
-        </div>
 
-        <div class="meta-grid">
-          <div class="meta-item"><strong>Team Member:</strong> ${report.user.name} (${report.user.email})</div>
-          <div class="meta-item"><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
-          <div class="meta-item"><strong>Project / Category:</strong> ${report.project.name}</div>
-          <div class="meta-item"><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
-        </div>
+          <div class="meta-grid">
+            <div class="meta-item"><strong>Team Member:</strong> ${report.user.name} (${report.user.email})</div>
+            <div class="meta-item"><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
+            <div class="meta-item"><strong>Project / Category:</strong> ${report.project.name}</div>
+            <div class="meta-item"><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
+          </div>
 
-        <div class="section">
-          <h3>Tasks Completed This Week</h3>
-          <ul>${completedHtml}</ul>
-        </div>
+          <div class="section">
+            <h3>Tasks Completed This Week</h3>
+            <ul>${completedHtml}</ul>
+          </div>
 
-        <div class="section">
-          <h3>Planned Tasks For Next Week</h3>
-          <ul>${plannedHtml}</ul>
-        </div>
+          <div class="section">
+            <h3>Planned Tasks For Next Week</h3>
+            <ul>${plannedHtml}</ul>
+          </div>
 
-        <div class="section section-blockers">
-          <h3>Blockers & Challenges</h3>
-          <ul>${blockersHtml}</ul>
-        </div>
+          <div class="section section-blockers">
+            <h3>Blockers & Challenges</h3>
+            <ul>${blockersHtml}</ul>
+          </div>
 
-        ${report.notes ? `
-        <div class="section">
-          <h3>Additional Notes</h3>
-          <div class="notes-box">${report.notes}</div>
-        </div>
-        ` : ''}
+          ${report.notes ? `
+          <div class="section">
+            <h3>Additional Notes</h3>
+            <div class="notes-box">${report.notes}</div>
+          </div>
+          ` : ''}
 
-        <div class="footer">
-          This report is a system-generated document from Sisenco Digital Weekly Work Planner. 
-          Generated on: ${new Date().toLocaleString()}
+          <div class="footer">
+            This report is a system-generated document from Sisenco Digital Weekly Work Planner. 
+            Generated on: ${new Date().toLocaleString()}
+          </div>
         </div>
-
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-              window.close();
-            }, 300);
-          }
-        </script>
       </body>
       </html>
     `;
     
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+    const element = document.createElement("a");
+    const file = new Blob([htmlContent], {type: 'text/html'});
+    element.href = URL.createObjectURL(file);
+    element.download = `Weekly_Report_${report.user.name.replace(/\s+/g, '_')}_${report.weekStart}.html`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    onToast('Report downloaded successfully!', 'success');
   };
 
   // Charts data configurations
