@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import '../styles/Login.css';
 import '../styles/Reports.css';
@@ -12,11 +12,13 @@ const Login = ({ onToast }) => {
   // Login Form
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   
   // Register Form
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerUsername, setRegisterUsername] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [registerName, setRegisterName] = useState('');
   const [registerRole, setRegisterRole] = useState('MEMBER'); // Default MEMBER
 
@@ -208,13 +210,36 @@ const Login = ({ onToast }) => {
             </div>
             <div className="form-group">
               <label>Password</label>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={loginPassword} 
-                onChange={(e) => setLoginPassword(e.target.value)}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showLoginPassword ? 'text' : 'password'} 
+                  placeholder="••••••••" 
+                  value={loginPassword} 
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  style={{ paddingRight: '40px', width: '100%' }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0,
+                    margin: 0
+                  }}
+                >
+                  {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <button type="submit" className="btn-primary" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign In'}
@@ -265,13 +290,36 @@ const Login = ({ onToast }) => {
             </div>
             <div className="form-group">
               <label>Password (min 6 chars)</label>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={registerPassword} 
-                onChange={(e) => setRegisterPassword(e.target.value)}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showRegisterPassword ? 'text' : 'password'} 
+                  placeholder="••••••••" 
+                  value={registerPassword} 
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  style={{ paddingRight: '40px', width: '100%' }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0,
+                    margin: 0
+                  }}
+                >
+                  {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label>System Role</label>
