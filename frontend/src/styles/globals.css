@@ -96,6 +96,12 @@ input:focus, textarea:focus, select:focus {
   background: #ffffff;
 }
 
+.form-group input, 
+.form-group textarea, 
+.form-group select {
+  width: 100%;
+}
+
 button {
   font-family: var(--font-sans);
   cursor: pointer;
