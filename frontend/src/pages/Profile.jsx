@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { User, Shield, ShieldCheck, Mail, Key, UserCheck, RefreshCw, Eye, EyeOff, Save, X } from 'lucide-react';
+import { User, Shield, ShieldCheck, Mail, Key, UserCheck, RefreshCw, Eye, EyeOff, Save, X, Edit3 } from 'lucide-react';
 import '../styles/Reports.css';
 
 const Profile = ({ onToast }) => {
   const { user } = useAuth();
   
-  // Unified Profile states
+  // Modal & Form States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editStep, setEditStep] = useState('otp'); // 'otp' | 'edit'
+  
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [isOtpSent, setIsOtpSent] = useState(false);
+  
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   
@@ -20,7 +23,7 @@ const Profile = ({ onToast }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize newUsername with the current username when the component loads
+  // Initialize username fields
   useEffect(() => {
     if (user) {
       setNewUsername(user.username || '');
@@ -48,17 +51,28 @@ const Profile = ({ onToast }) => {
     return () => clearTimeout(timer);
   }, [newUsername, user]);
 
-  const handleRequestOtp = async () => {
+  const handleStartEditing = async () => {
     setIsLoading(true);
     try {
       await api.post('/users/profile/request-otp');
       onToast('Verification OTP code sent to your email successfully!', 'success');
-      setIsOtpSent(true);
+      setEditStep('otp');
+      setIsModalOpen(true);
     } catch (err) {
       onToast('Failed to send verification OTP code. Make sure SMTP is configured.', 'error');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOtpVerificationSubmit = (e) => {
+    e.preventDefault();
+    if (otpCode.trim().length !== 6) {
+      onToast('Please enter a valid 6-digit verification code', 'error');
+      return;
+    }
+    // Proceed to Step 2
+    setEditStep('edit');
   };
 
   const handleUpdateProfile = async (e) => {
@@ -109,11 +123,8 @@ const Profile = ({ onToast }) => {
       await api.put('/users/profile/update', payload);
       onToast('Profile updated successfully! Please re-login if you modified your username.', 'success');
       
-      // Reset forms
-      setNewPassword('');
-      setConfirmPassword('');
-      setOtpCode('');
-      setIsOtpSent(false);
+      // Close Modal and Reset States
+      handleCloseModal();
       
       // Auto reload window if username changed to force re-login session clean
       if (payload.username) {
@@ -129,12 +140,12 @@ const Profile = ({ onToast }) => {
     }
   };
 
-  const handleCancel = () => {
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
     setNewUsername(user?.username || '');
     setNewPassword('');
     setConfirmPassword('');
     setOtpCode('');
-    setIsOtpSent(false);
   };
 
   if (!user) return <div className="empty-state">Loading user profile...</div>;
@@ -142,149 +153,158 @@ const Profile = ({ onToast }) => {
   const isUsernameChanged = newUsername.trim().toLowerCase() !== user.username;
 
   return (
-    <div className="reports-layout" style={{ maxWidth: '900px', margin: '0 auto' }}>
-      <div className="page-header">
+    <div className="reports-layout" style={{ maxWidth: '500px', margin: '20px auto' }}>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '25px' }}>
         <div>
           <h2 className="page-title text-gradient">Account Settings</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Modify your user details or security password. All changes are validated with a single OTP verification.
+            Manage your personal profile information. Click the edit icon to configure credentials.
           </p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', marginTop: '20px' }} className="history-grid-layout">
-        {/* User Info Sidebar Summary Card */}
-        <div className="glass-panel" style={{ padding: '24px', height: 'fit-content', textAlign: 'center' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--color-primary-glow)', border: '2px solid var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto', color: 'var(--color-primary)' }}>
-            <User size={36} />
+      {/* User Info Card */}
+      <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', position: 'relative' }}>
+        {/* Edit pen button positioned in the top-right corner */}
+        <button
+          type="button"
+          onClick={handleStartEditing}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px',
+            borderRadius: '50%',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--color-primary-glow)';
+            e.currentTarget.style.color = 'var(--color-primary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'none';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+          title="Edit Profile Settings"
+          disabled={isLoading}
+        >
+          <Edit3 size={18} />
+        </button>
+
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--color-primary-glow)', border: '2px solid var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto', color: 'var(--color-primary)' }}>
+          <User size={36} />
+        </div>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</h3>
+        <p style={{ color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>
+          {user.role}
+        </p>
+        
+        <div style={{ marginTop: '25px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '15px', borderTop: '1px solid var(--border-glass)', paddingTop: '20px' }}>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Username</label>
+            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>@{user.username || 'not_set'}</div>
           </div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</h3>
-          <p style={{ color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginTop: '4px' }}>
-            {user.role}
-          </p>
-          
-          <div style={{ marginTop: '25px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '15px', borderTop: '1px solid var(--border-glass)', paddingTop: '20px' }}>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Username</label>
-              <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>@{user.username || 'not_set'}</div>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Email Address</label>
-              <div style={{ fontWeight: 600, fontSize: '0.95rem', wordBreak: 'break-all' }}>{user.email}</div>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Account Approval Status</label>
-              <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <ShieldCheck size={16} /> Verified Active
-              </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Email Address</label>
+            <div style={{ fontWeight: 600, fontSize: '0.95rem', wordBreak: 'break-all' }}>{user.email}</div>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Account Approval Status</label>
+            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <ShieldCheck size={16} /> Verified Active
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Unified Editor Form */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem', fontWeight: 600 }}>
-            <Shield size={18} style={{ color: 'var(--color-primary)' }} />
-            Edit Profile Details
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px', marginBottom: '20px' }}>
-            To change your username or update your password, request a verification code.
-          </p>
+      {/* Pop-up Edit Modal Window */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Shield size={18} style={{ color: 'var(--color-primary)' }} />
+                {editStep === 'otp' ? 'Verification OTP Required' : 'Edit Profile Credentials'}
+              </h3>
+              <button 
+                type="button" 
+                onClick={handleCloseModal}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', padding: 0 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-          {!isOtpSent ? (
-            <button
-              type="button"
-              className="btn-add"
-              style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
-              onClick={handleRequestOtp}
-              disabled={isLoading}
-            >
-              <Mail size={16} /> Request OTP Code to Edit Profile
-            </button>
-          ) : (
-            <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="form-group" style={{ background: 'rgba(27,168,131,0.05)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(27,168,131,0.1)' }}>
-                <label style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Verification OTP Code (sent to your email)</label>
-                <input
-                  type="text"
-                  placeholder="Enter 6-digit OTP code"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  style={{ marginTop: '6px' }}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Username</label>
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  required
-                />
-                {isUsernameChanged && newUsername.trim().length >= 3 && (
-                  <div style={{ fontSize: '0.8rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {usernameChecking ? (
-                      <span style={{ color: 'var(--text-secondary)' }}>Checking availability...</span>
-                    ) : usernameAvailable ? (
-                      <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>✓ Username is available</span>
-                    ) : (
-                      <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>✗ Username is already taken</span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>New Password (leave blank to keep current)</label>
-                <div style={{ position: 'relative' }}>
+            {editStep === 'otp' ? (
+              <form onSubmit={handleOtpVerificationSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, lineHeight: 1.5 }}>
+                  We have dispatched a 6-digit One-Time Password (OTP) to your registered email <strong>{user.email}</strong>. 
+                  Please enter it below to verify your identity.
+                </p>
+                <div className="form-group">
+                  <label>Verification OTP Code</label>
                   <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    style={{ paddingRight: '40px', width: '100%' }}
+                    type="text"
+                    placeholder="Enter 6-digit OTP code"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    maxLength={6}
+                    required
+                    autoFocus
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: 0,
-                      margin: 0
-                    }}
-                  >
-                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                  <button type="submit" className="btn-primary" style={{ flex: 1, marginTop: 0 }}>
+                    Verify & Unlock Editing
+                  </button>
+                  <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={handleCloseModal}>
+                    Cancel
                   </button>
                 </div>
-              </div>
+              </form>
+            ) : (
+              <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    placeholder="Username"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    required
+                  />
+                  {isUsernameChanged && newUsername.trim().length >= 3 && (
+                    <div style={{ fontSize: '0.8rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {usernameChecking ? (
+                        <span style={{ color: 'var(--text-secondary)' }}>Checking availability...</span>
+                      ) : usernameAvailable ? (
+                        <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>✓ Username is available</span>
+                      ) : (
+                        <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>✗ Username is already taken</span>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {newPassword && (
-                <div className="form-group animate-fade-in">
-                  <label>Confirm New Password</label>
+                <div className="form-group">
+                  <label>New Password (leave blank to keep current)</label>
                   <div style={{ position: 'relative' }}>
                     <input
-                      type={showConfirmPassword ? 'text' : 'password'}
+                      type={showNewPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       style={{ paddingRight: '40px', width: '100%' }}
-                      required
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() => setShowNewPassword(!showNewPassword)}
                       style={{
                         position: 'absolute',
                         right: '12px',
@@ -300,34 +320,70 @@ const Profile = ({ onToast }) => {
                         margin: 0
                       }}
                     >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
-              )}
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '15px' }}>
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
-                  style={{ flex: 1, marginTop: 0 }} 
-                  disabled={isLoading || (isUsernameChanged && newUsername.trim().length >= 3 && !usernameAvailable)}
-                >
-                  <Save size={16} /> Save Profile Changes
-                </button>
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
-                  style={{ width: 'auto' }} 
-                  onClick={handleCancel}
-                >
-                  <X size={16} /> Cancel
-                </button>
-              </div>
-            </form>
-          )}
+                {newPassword && (
+                  <div className="form-group animate-fade-in">
+                    <label>Confirm New Password</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        style={{ paddingRight: '40px', width: '100%' }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--text-secondary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: 0,
+                          margin: 0
+                        }}
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '15px' }}>
+                  <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    style={{ flex: 1, marginTop: 0 }} 
+                    disabled={isLoading || (isUsernameChanged && newUsername.trim().length >= 3 && !usernameAvailable)}
+                  >
+                    <Save size={16} /> Save Profile Changes
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-secondary" 
+                    style={{ width: 'auto' }} 
+                    onClick={handleCloseModal}
+                  >
+                    <X size={16} /> Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

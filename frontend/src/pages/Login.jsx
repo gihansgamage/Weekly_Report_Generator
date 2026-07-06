@@ -18,7 +18,10 @@ const Login = ({ onToast }) => {
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerUsername, setRegisterUsername] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
+  
   const [registerName, setRegisterName] = useState('');
   const [registerRole, setRegisterRole] = useState('MEMBER'); // Default MEMBER
 
@@ -113,6 +116,15 @@ const Login = ({ onToast }) => {
     return () => clearTimeout(timer);
   }, [registerUsername]);
 
+  // Live password validation checks
+  const isLengthValid = registerPassword.length >= 6;
+  const hasLetter = /[a-zA-Z]/.test(registerPassword);
+  const hasNumber = /[0-9]/.test(registerPassword);
+  const hasSymbol = /[^a-zA-Z0-9]/.test(registerPassword);
+  const passwordsMatch = registerPassword && registerPassword === registerConfirmPassword;
+  
+  const isPasswordStrong = isLengthValid && hasLetter && hasNumber && hasSymbol;
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
@@ -133,7 +145,7 @@ const Login = ({ onToast }) => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!registerEmail || !registerUsername || !registerPassword || !registerName || !registerRole) {
+    if (!registerEmail || !registerUsername || !registerPassword || !registerConfirmPassword || !registerName || !registerRole) {
       onToast('Please fill in all fields', 'error');
       return;
     }
@@ -145,8 +157,12 @@ const Login = ({ onToast }) => {
       onToast('Username is already taken!', 'error');
       return;
     }
-    if (registerPassword.length < 6) {
-      onToast('Password must be at least 6 characters long', 'error');
+    if (!isPasswordStrong) {
+      onToast('Password does not meet the strong password requirements', 'error');
+      return;
+    }
+    if (!passwordsMatch) {
+      onToast('Passwords do not match', 'error');
       return;
     }
     setIsLoading(true);
@@ -156,6 +172,7 @@ const Login = ({ onToast }) => {
       setIsLogin(true); // Switch to login tab
       setLoginEmail(registerUsername);
       setLoginPassword('');
+      setRegisterConfirmPassword('');
     } catch (err) {
       const errMsg = err.response?.data?.message || err.response?.data || 'Registration failed';
       onToast(typeof errMsg === 'string' ? errMsg : 'Registration failed', 'error');
@@ -288,8 +305,10 @@ const Login = ({ onToast }) => {
                 required
               />
             </div>
+            
+            {/* Double Ask Password Input Fields */}
             <div className="form-group">
-              <label>Password (min 6 chars)</label>
+              <label>Password</label>
               <div style={{ position: 'relative' }}>
                 <input 
                   type={showRegisterPassword ? 'text' : 'password'} 
@@ -321,6 +340,74 @@ const Login = ({ onToast }) => {
                 </button>
               </div>
             </div>
+
+            <div className="form-group">
+              <label>Confirm Password</label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showRegisterConfirmPassword ? 'text' : 'password'} 
+                  placeholder="••••••••" 
+                  value={registerConfirmPassword} 
+                  onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                  style={{ paddingRight: '40px', width: '100%' }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterConfirmPassword(!showRegisterConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0,
+                    margin: 0
+                  }}
+                >
+                  {showRegisterConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Live Strong Password Validation Indicator checklist */}
+            {registerPassword && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-glass)',
+                fontSize: '0.8rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                marginTop: '5px',
+                marginBottom: '15px'
+              }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>Password Requirements:</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLengthValid ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  <span>{isLengthValid ? '✓' : '✗'}</span> At least 6 characters
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasLetter ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  <span>{hasLetter ? '✓' : '✗'}</span> Contains letters (a-z, A-Z)
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasNumber ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  <span>{hasNumber ? '✓' : '✗'}</span> Contains numbers (0-9)
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: hasSymbol ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  <span>{hasSymbol ? '✓' : '✗'}</span> Contains symbols/special chars
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordsMatch ? 'var(--color-success)' : 'var(--text-secondary)' }}>
+                  <span>{passwordsMatch ? '✓' : '✗'}</span> Passwords match
+                </div>
+              </div>
+            )}
+
             <div className="form-group">
               <label>System Role</label>
               <select 
@@ -332,23 +419,30 @@ const Login = ({ onToast }) => {
                 <option value="MANAGER">Manager / Admin (Analyze Reports)</option>
               </select>
             </div>
-            <button type="submit" className="btn-primary" disabled={isLoading || (registerUsername.trim().length >= 3 && !usernameAvailable)}>
+            
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              disabled={isLoading || (registerUsername.trim().length >= 3 && !usernameAvailable) || !isPasswordStrong || !passwordsMatch}
+            >
               {isLoading ? 'Submitting registration...' : 'Submit Request'}
             </button>
           </form>
         )}
 
-        {/* OR Google Login Button */}
-        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
-          <span style={{ padding: '0 10px', fontSize: '0.8rem' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
-        </div>
-
+        {/* OR Google Login Button - only shown on Login tab */}
         {isLogin && (
-          <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '15px' }}>
-            <div id="google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
-          </div>
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)' }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
+              <span style={{ padding: '0 10px', fontSize: '0.8rem' }}>OR</span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '15px' }}>
+              <div id="google-signin-btn" style={{ width: '100%', minHeight: '40px' }}></div>
+            </div>
+          </>
         )}
 
         <div className="demo-credentials">
