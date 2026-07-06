@@ -1,51 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { 
-  Eye, RefreshCw, CalendarDays, Download, X, Clock, BookOpen
+  Eye, RefreshCw, CalendarDays, Download, X, Clock, BookOpen, Filter
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import '../styles/Dashboard.css';
 import '../styles/Reports.css';
 
-const Submissions = ({ onToast }) => {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedWeek, setSelectedWeek] = useState(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0,0,0,0);
-    return monday.toISOString().split('T')[0];
-  });
+const AllReports = ({ onToast }) => {
+  // Filtering states
+  const [filterUser, setFilterUser] = useState('');
+  const [filterProject, setFilterProject] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filteredReports, setFilteredReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+
+  // Metadata dropdowns
+  const [members, setMembers] = useState([]);
+  const [projects, setProjects] = useState([]);
+
+  // Report Modal view
   const [selectedReport, setSelectedReport] = useState(null);
 
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/stats?week=${selectedWeek}`);
-      setStats(res.data);
-    } catch (err) {
-      onToast('Failed to load submissions statistics', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, [selectedWeek]);
-
-  const handleWeekChange = (e) => {
-    setLoading(true);
-    const date = new Date(e.target.value);
+  const getMonday = (d) => {
+    const date = new Date(d);
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(date.setDate(diff));
     monday.setHours(0,0,0,0);
-    setSelectedWeek(monday.toISOString().split('T')[0]);
+    return monday.toISOString().split('T')[0];
   };
+
+  const fetchMetadata = async () => {
+    try {
+      const projRes = await api.get('/projects');
+      setProjects(projRes.data);
+      
+      const statsRes = await api.get('/stats');
+      if (statsRes.data.memberSubmissionStatus) {
+        const uList = statsRes.data.memberSubmissionStatus.map(m => ({ id: m.userId, name: m.name }));
+        setMembers(uList);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchFilteredReports = async () => {
+    setLoadingReports(true);
+    const params = {};
+    if (filterUser) params.userId = filterUser;
+    if (filterProject) params.projectId = filterProject;
+    if (filterStartDate) params.startDate = getMonday(filterStartDate);
+    if (filterEndDate) params.endDate = getMonday(filterEndDate);
+    
+    try {
+      const res = await api.get('/reports', { params });
+      setFilteredReports(res.data);
+    } catch (err) {
+      onToast('Failed to load reports log', 'error');
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMetadata();
+    fetchFilteredReports();
+  }, []);
+
+  useEffect(() => {
+    fetchFilteredReports();
+  }, [filterUser, filterProject, filterStartDate, filterEndDate]);
 
   const parseJsonList = (jsonStr) => {
     if (!jsonStr) return [];
@@ -56,36 +84,17 @@ const Submissions = ({ onToast }) => {
     }
   };
 
-  const resolveStatusBadge = (status, weekStr) => {
-    switch (status) {
-      case 'SUBMITTED':
-        return <span className="badge badge-submitted">Submitted</span>;
-      case 'DRAFT':
-        return <span className="badge badge-draft">Draft</span>;
-      case 'PENDING':
-        return <span className="badge badge-pending">Pending</span>;
-      default:
-        return <span className="badge badge-pending">Pending</span>;
-    }
-  };
-
-  const viewReportDetails = async (id, mObj = null) => {
-    try {
-      const allRes = await api.get(`/reports`);
-      const rep = allRes.data.find(r => r.id === id);
-      
-      if (rep) {
-        setSelectedReport(rep);
-        // Mark as read in backend
-        if (!rep.readByManager) {
-          await api.put(`/reports/${rep.id}/read`);
-          fetchStats();
-        }
-      } else {
-        onToast('Report data not found', 'error');
+  // View report details and trigger mark-as-read
+  const viewReportDetails = async (report) => {
+    setSelectedReport(report);
+    if (!report.readByManager && report.status === 'SUBMITTED') {
+      try {
+        await api.put(`/reports/${report.id}/read`);
+        // Update item readByManager flag locally to clear unread indicator
+        setFilteredReports(prev => prev.map(r => r.id === report.id ? { ...r, readByManager: true } : r));
+      } catch (err) {
+        console.error('Failed to mark report as read:', err);
       }
-    } catch (err) {
-      console.error('Failed to view report or mark as read:', err);
     }
   };
 
@@ -202,77 +211,96 @@ const Submissions = ({ onToast }) => {
 
   return (
     <div className="reports-layout" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Upper Title */}
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 className="page-title text-gradient">Team Submissions</h2>
+          <h2 className="page-title text-gradient">All Reports Database</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Check team report submission compliance and view details of weekly logs.
+            Filter, search, and audit all historical work reports across the entire team database.
           </p>
         </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#ffffff', border: '1px solid var(--border-glass)', padding: '6px 12px', borderRadius: '8px' }}>
-            <CalendarDays size={16} style={{ color: 'var(--color-primary)' }} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)' }}>Select Week:</span>
-            <input 
-              type="date" 
-              value={selectedWeek} 
-              onChange={handleWeekChange}
-              style={{ border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}
-            />
-          </div>
-          <button 
-            type="button" 
-            className="btn-add" 
-            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-            onClick={fetchStats}
-          >
-            <RefreshCw size={14} className={loading ? 'spin' : ''} />
-            Refresh
-          </button>
-        </div>
+        <button 
+          type="button" 
+          className="btn-add" 
+          style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+          onClick={fetchFilteredReports}
+        >
+          <RefreshCw size={14} />
+          Refresh List
+        </button>
       </div>
 
-      {stats && (
-        <div className="glass-panel" style={{ marginTop: '25px', padding: '30px' }}>
-          <h3 className="chart-title" style={{ fontSize: '1.2rem', fontWeight: 600 }}>Team Compliance Tracker</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px', marginBottom: '20px' }}>
-            Detailed logs of weekly statuses for the week starting {selectedWeek}.
-          </p>
-          
-          <div className="compliance-table-wrapper">
-            <table className="compliance-table">
-              <thead>
-                <tr>
-                  <th>Team Member</th>
-                  <th>Submission Status</th>
-                  <th>Submission Date</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.memberSubmissionStatus?.map((m) => {
-                  // If reportId is set and matching status list from stats has submittedAt, let's see if it's unread
-                  // Unread submissions are marked in the stats data from backend if we extend it, or we can check the database!
-                  // Wait, can we pass a list of reports or just rely on if it's unread?
-                  // Wait, how did we get unread before?
-                  // In the previous version we checked: `!matchingReport.readByManager`
-                  // Wait! The stats endpoint response `stats.memberSubmissionStatus` list can also return `readByManager`!
-                  // Let's check `StatController.java` line 112:
-                  // `mStat.put("status", repOpt.get().getStatus());`
-                  // If we also put `readByManager` inside `mStat` on backend:
-                  // `mStat.put("readByManager", repOpt.get().isReadByManager());`
-                  // This is incredibly clean and 100% correct! We should modify StatController.java to include "readByManager" inside memberSubmissionStatus list!
-                  // That way Submissions.jsx doesn't need to load the entire reports list just to find the read state!
-                  // Yes, let's look at that!
-                  const isUnread = m.status === 'SUBMITTED' && m.readByManager === false;
+      {/* Reports Filtering section */}
+      <div className="glass-panel filters-bar" style={{ marginTop: '25px', padding: '30px' }}>
+        <h3 className="chart-title" style={{ width: '100%', marginBottom: '15px', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px' }}>
+          <Filter size={18} style={{ color: 'var(--color-primary)' }} /> Search & Filter Parameters
+        </h3>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', width: '100%' }}>
+          <div className="filter-group">
+            <label>Team Member</label>
+            <select value={filterUser} onChange={(e) => setFilterUser(e.target.value)}>
+              <option value="">All Members</option>
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
 
-                  return (
-                    <tr key={m.userId}>
+          <div className="filter-group">
+            <label>Project</label>
+            <select value={filterProject} onChange={(e) => setFilterProject(e.target.value)}>
+              <option value="">All Projects</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Start Date</label>
+            <input 
+              type="date" 
+              value={filterStartDate} 
+              onChange={(e) => setFilterStartDate(e.target.value)} 
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>End Date</label>
+            <input 
+              type="date" 
+              value={filterEndDate} 
+              onChange={(e) => setFilterEndDate(e.target.value)} 
+            />
+          </div>
+        </div>
+
+        {/* Filtered Logs List */}
+        <div style={{ width: '100%', marginTop: '25px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>Filtered Results</h4>
+          {loadingReports ? (
+            <div className="empty-state">Searching logs...</div>
+          ) : filteredReports.length === 0 ? (
+            <div className="empty-state">No matching reports found.</div>
+          ) : (
+            <div className="compliance-table-wrapper">
+              <table className="compliance-table">
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th>Team Member</th>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReports.map((rep) => (
+                    <tr key={rep.id}>
+                      <td>Week of {rep.weekStart}</td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {isUnread && (
+                          {!rep.readByManager && rep.status === 'SUBMITTED' && (
                             <span 
                               style={{ 
                                 width: '8px', 
@@ -284,43 +312,31 @@ const Submissions = ({ onToast }) => {
                               title="Unread Submission"
                             />
                           )}
-                          <div className="compliance-user">{m.name}</div>
+                          <strong>{rep.user.name}</strong>
                         </div>
-                        <div className="compliance-email" style={{ paddingLeft: isUnread ? '16px' : '0' }}>{m.email}</div>
+                      </td>
+                      <td>{rep.project.name}</td>
+                      <td>
+                        <span className={`badge badge-${rep.status.toLowerCase()}`}>{rep.status}</span>
                       </td>
                       <td>
-                        {resolveStatusBadge(m.status, selectedWeek)}
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>
-                        {m.submittedAt ? new Date(m.submittedAt).toLocaleString() : '—'}
-                      </td>
-                      <td>
-                        {m.reportId ? (
-                          <button 
-                            type="button" 
-                            className="btn-details"
-                            onClick={() => viewReportDetails(m.reportId)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 600 }}
-                          >
-                            <Eye size={14} /> View Report
-                          </button>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>—</span>
-                        )}
+                        <button 
+                          type="button" 
+                          className="btn-details" 
+                          onClick={() => viewReportDetails(rep)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 600 }}
+                        >
+                          <Eye size={14} /> Open
+                        </button>
                       </td>
                     </tr>
-                  );
-                })}
-                {stats.memberSubmissionStatus?.length === 0 && (
-                  <tr>
-                    <td colSpan="4" className="empty-state">No team members registered yet.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Reports View Details Overlay */}
       {selectedReport && (
@@ -353,7 +369,7 @@ const Submissions = ({ onToast }) => {
               </h4>
               <p>Team Member: <strong>{selectedReport.user.name} ({selectedReport.user.email})</strong></p>
               <p>Project / Category: <strong>{selectedReport.project.name}</strong></p>
-              {selectedReport.hoursWorked && <p>Hours Worked: <strong>{selectedReport.hoursWorked} hrs</strong></p>}
+              {selectedReport.hoursWorked && <p>Hours Logged: <strong>{selectedReport.hoursWorked} hrs</strong></p>}
               {selectedReport.submittedAt && (
                 <p>Submitted At: <strong>{new Date(selectedReport.submittedAt).toLocaleString()}</strong></p>
               )}
@@ -406,4 +422,4 @@ const Submissions = ({ onToast }) => {
   );
 };
 
-export default Submissions;
+export default AllReports;

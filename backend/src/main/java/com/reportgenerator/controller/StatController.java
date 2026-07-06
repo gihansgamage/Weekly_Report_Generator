@@ -112,10 +112,12 @@ public class StatController {
                 mStat.put("status", repOpt.get().getStatus()); // "DRAFT" or "SUBMITTED"
                 mStat.put("reportId", repOpt.get().getId());
                 mStat.put("submittedAt", repOpt.get().getSubmittedAt());
+                mStat.put("readByManager", repOpt.get().isReadByManager());
             } else {
                 mStat.put("status", "PENDING");
                 mStat.put("reportId", null);
                 mStat.put("submittedAt", null);
+                mStat.put("readByManager", true);
             }
             memberSubmissionStatus.add(mStat);
         }

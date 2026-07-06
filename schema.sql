@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS reports (
     notes TEXT,                    -- Optional links or notes
     status VARCHAR(50) NOT NULL CHECK (status IN ('DRAFT', 'SUBMITTED')),
     submitted_at TIMESTAMP WITHOUT TIME ZONE,
+    read_by_manager BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

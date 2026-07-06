@@ -49,12 +49,23 @@ public class Report {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "read_by_manager", nullable = false)
+    private boolean readByManager = false;
+
     public Report() {
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public boolean isReadByManager() {
+        return readByManager;
+    }
+
+    public void setReadByManager(boolean readByManager) {
+        this.readByManager = readByManager;
     }
 
     public Long getId() {

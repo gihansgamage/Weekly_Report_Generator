@@ -1,10 +1,32 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, ClipboardList } from 'lucide-react';
+import api from '../utils/api';
 import '../styles/Components.css';
 
 const Navbar = ({ activePage, setActivePage }) => {
   const { user, logout } = useAuth();
+  const [hasUnread, setHasUnread] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!user || user.role !== 'MANAGER') return;
+
+    const checkUnread = async () => {
+      try {
+        const res = await api.get('/reports');
+        const unread = res.data.some(r => r.status === 'SUBMITTED' && !r.readByManager);
+        setHasUnread(unread);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    checkUnread();
+    
+    // Poll for new submissions every 15 seconds to show real-time notifications
+    const interval = setInterval(checkUnread, 15000);
+    return () => clearInterval(interval);
+  }, [user, activePage]);
 
   if (!user) return null;
 
@@ -29,8 +51,28 @@ const Navbar = ({ activePage, setActivePage }) => {
             <button
               onClick={() => setActivePage('submissions')}
               className={`nav-link ${activePage === 'submissions' ? 'active' : ''}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               Team Submissions
+              {hasUnread && (
+                <span 
+                  style={{ 
+                    width: '8px', 
+                    height: '8px', 
+                    background: 'var(--color-danger)', 
+                    borderRadius: '50%', 
+                    display: 'inline-block',
+                    boxShadow: '0 0 6px var(--color-danger)'
+                  }} 
+                  title="Unread Submissions"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActivePage('all_reports')}
+              className={`nav-link ${activePage === 'all_reports' ? 'active' : ''}`}
+            >
+              All Reports
             </button>
             <button
               onClick={() => setActivePage('activity')}

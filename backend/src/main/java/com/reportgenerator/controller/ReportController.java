@@ -176,11 +176,25 @@ public class ReportController {
 
         if (reqStatus.equals("SUBMITTED")) {
             report.setSubmittedAt(LocalDateTime.now());
+            report.setReadByManager(false);
         }
         report.setStatus(reqStatus);
 
         Report updatedReport = reportRepository.save(report);
         return ResponseEntity.ok(updatedReport);
+    }
+
+    @PutMapping("/{id}/read")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+        Optional<Report> reportOpt = reportRepository.findById(id);
+        if (reportOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Report report = reportOpt.get();
+        report.setReadByManager(true);
+        reportRepository.save(report);
+        return ResponseEntity.ok("Report marked as read");
     }
 
     @DeleteMapping("/{id}")
