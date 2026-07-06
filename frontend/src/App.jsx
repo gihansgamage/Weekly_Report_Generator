@@ -6,6 +6,8 @@ import Reports from './pages/Reports';
 import ReportHistory from './pages/ReportHistory';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
+import Submissions from './pages/Submissions';
+import ActivityLogs from './pages/ActivityLogs';
 import ChatWidget from './components/ChatWidget';
 import Toast from './components/Toast';
 import './styles/globals.css';
@@ -54,6 +56,10 @@ const MainApp = () => {
     switch (activePage) {
       case 'dashboard':
         return user.role === 'MANAGER' ? <Dashboard onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
+      case 'submissions':
+        return user.role === 'MANAGER' ? <Submissions onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
+      case 'activity':
+        return <ActivityLogs onToast={showToast} />;
       case 'projects':
         return user.role === 'MANAGER' ? <Projects onToast={showToast} /> : <Reports onToast={showToast} editingDraftWeek={editingDraftWeek} setEditingDraftWeek={setEditingDraftWeek} />;
       case 'reports':

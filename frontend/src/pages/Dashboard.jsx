@@ -105,18 +105,6 @@ const Dashboard = ({ onToast }) => {
     fetchFilteredReports();
   }, [filterUser, filterProject, filterStartDate, filterEndDate]);
 
-  // Normalise status badges helper for compliance grid
-  const resolveStatusBadge = (status, weekStartVal) => {
-    const currentMonday = getMonday(new Date());
-    if (status === 'PENDING') {
-      if (weekStartVal < currentMonday) {
-        return <span className="badge badge-late">LATE</span>;
-      }
-      return <span className="badge badge-pending">PENDING</span>;
-    }
-    return <span className={`badge badge-${status.toLowerCase()}`}>{status}</span>;
-  };
-
   // Helper to open report detail view by loading matching details
   const viewReportDetails = async (reportId) => {
     try {
@@ -396,87 +384,6 @@ const Dashboard = ({ onToast }) => {
             </div>
           </div>
 
-          <div className="dashboard-sections">
-            {/* Compliance Table Grid */}
-            <div className="compliance-card glass-panel">
-              <h3 className="chart-title" style={{ fontSize: '1.1rem' }}>Team Compliance Status</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>
-                Submission tracker for the week starting {selectedWeek}.
-              </p>
-              
-              <div className="compliance-table-wrapper">
-                <table className="compliance-table">
-                  <thead>
-                    <tr>
-                      <th>Team Member</th>
-                      <th>Submission Status</th>
-                      <th>Submission Date</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats?.memberSubmissionStatus?.map((m) => (
-                      <tr key={m.userId}>
-                        <td>
-                          <div className="compliance-user">{m.name}</div>
-                          <div className="compliance-email">{m.email}</div>
-                        </td>
-                        <td>
-                          {resolveStatusBadge(m.status, selectedWeek)}
-                        </td>
-                        <td style={{ color: 'var(--text-secondary)' }}>
-                          {m.submittedAt ? new Date(m.submittedAt).toLocaleString() : '—'}
-                        </td>
-                        <td>
-                          {m.reportId ? (
-                            <button 
-                              type="button" 
-                              className="btn-details"
-                              onClick={() => viewReportDetails(m.reportId)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer' }}
-                            >
-                              <Eye size={14} /> View Report
-                            </button>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Recent Activity Feed */}
-            <div className="activity-card glass-panel">
-              <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1.1rem' }}>
-                <FileClock size={18} style={{ color: 'var(--color-accent)' }} />
-                Recent Activity Logs
-              </h3>
-              <div className="activity-feed">
-                {stats?.recentActivity?.length === 0 ? (
-                  <div className="empty-state" style={{ padding: '20px 0' }}>No recent submissions.</div>
-                ) : (
-                  stats?.recentActivity?.map((act) => (
-                    <div key={act.id} className="activity-item">
-                      <div className="activity-meta">
-                        <div className="activity-title">
-                          <strong>{act.userName}</strong> submitted weekly report for <strong>{act.projectName}</strong>
-                        </div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                          Week of {act.weekStart}
-                        </div>
-                        <div className="activity-time">
-                          {new Date(act.submittedAt).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
         </>
       )}
 

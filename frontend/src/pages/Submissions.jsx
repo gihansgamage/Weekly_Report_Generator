@@ -1,42 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Eye, Trash2, Calendar, Clock, BookOpen, AlertCircle, Download } from 'lucide-react';
-import '../styles/Reports.css';
+import { 
+  Users, CheckCircle2, AlertOctagon, Eye, RefreshCw, 
+  CalendarDays, Download, X, Clock, BookOpen, AlertCircle
+} from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import '../styles/Dashboard.css';
+import '../styles/Reports.css';
 
-const ReportHistory = ({ onToast, onEditDraft }) => {
-  const [history, setHistory] = useState([]);
+const Submissions = ({ onToast }) => {
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    monday.setHours(0,0,0,0);
+    return monday.toISOString().split('T')[0];
+  });
   const [selectedReport, setSelectedReport] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const fetchHistory = async () => {
+  const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/reports/history');
-      setHistory(res.data);
+      const res = await api.get(`/stats?week=${selectedWeek}`);
+      setStats(res.data);
     } catch (err) {
-      onToast('Failed to load report history logs', 'error');
+      onToast('Failed to load submissions statistics', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    fetchStats();
+  }, [selectedWeek]);
 
-  const handleDelete = async (id, e) => {
-    e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this report draft?')) return;
-    try {
-      await api.delete(`/reports/${id}`);
-      onToast('Report deleted successfully', 'success');
-      fetchHistory();
-    } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data || 'Failed to delete report';
-      onToast(typeof errMsg === 'string' ? errMsg : 'Operation failed', 'error');
-    }
+  const handleWeekChange = (e) => {
+    setLoading(true);
+    // Align to nearest monday
+    const date = new Date(e.target.value);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(date.setDate(diff));
+    monday.setHours(0,0,0,0);
+    setSelectedWeek(monday.toISOString().split('T')[0]);
   };
 
   const parseJsonList = (jsonStr) => {
@@ -48,11 +59,43 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
     }
   };
 
+  const resolveStatusBadge = (status, weekStr) => {
+    switch (status) {
+      case 'SUBMITTED':
+        return <span className="badge badge-submitted">Submitted</span>;
+      case 'DRAFT':
+        return <span className="badge badge-draft">Draft</span>;
+      case 'PENDING':
+        return <span className="badge badge-pending">Pending</span>;
+      default:
+        return <span className="badge badge-pending">Pending</span>;
+    }
+  };
+
+  const viewReportDetails = async (id) => {
+    setLoadingDetails(true);
+    try {
+      // Find within member status list if we have it or fetch
+      const res = await api.get(`/reports/history`); // or fetch specific
+      // We can also fetch the report directly by ID since manager has access
+      const allRes = await api.get(`/reports?startDate=${selectedWeek}&endDate=${selectedWeek}`);
+      const rep = allRes.data.find(r => r.id === id);
+      if (rep) {
+        setSelectedReport(rep);
+      } else {
+        onToast('Report data not found', 'error');
+      }
+    } catch (err) {
+      onToast('Failed to fetch report details', 'error');
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const handleDownloadReport = (report) => {
-    // 1. Create a styled container in DOM to render our premium card
     const element = document.createElement('div');
     element.style.position = 'absolute';
-    element.style.left = '-9999px'; // off screen
+    element.style.left = '-9999px';
     element.style.width = '800px';
     element.style.background = '#ffffff';
     element.style.color = '#1f2937';
@@ -69,10 +112,6 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
     const plannedHtml = plannedTasks.map(p => `<li style="margin-bottom: 8px; font-size: 0.95rem;">${p}</li>`).join('');
     const blockersHtml = blockersList.map(b => `<li class="${b.toLowerCase() !== 'none' ? 'blocker-warn' : ''}" style="margin-bottom: 8px; font-size: 0.95rem; ${b.toLowerCase() !== 'none' ? 'color: #dc2626; font-weight: 500;' : ''}">${b}</li>`).join('');
     
-    // Fallback names if report.user is empty/missing
-    const userName = report.user?.name || 'Team Member';
-    const userEmail = report.user?.email || '';
-
     element.innerHTML = `
       <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px; background: #ffffff; box-shadow: 0 10px 25px rgba(0,0,0,0.02);">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1ba883; padding-bottom: 20px; margin-bottom: 30px;">
@@ -83,7 +122,7 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 30px; font-size: 0.95rem;">
-          <div><strong>Team Member:</strong> ${userName} ${userEmail ? `(${userEmail})` : ''}</div>
+          <div><strong>Team Member:</strong> ${report.user.name} (${report.user.email})</div>
           <div><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
           <div><strong>Project / Category:</strong> ${report.project.name}</div>
           <div><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
@@ -136,8 +175,8 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
           format: 'a4'
         });
         
-        const imgWidth = 210; // A4 width
-        const pageHeight = 297; // A4 height
+        const imgWidth = 210;
+        const pageHeight = 297;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;
@@ -152,7 +191,7 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
           heightLeft -= pageHeight;
         }
 
-        const fileName = `Weekly_Report_${userName.replace(/\s+/g, '_')}_${report.weekStart}.pdf`;
+        const fileName = `Weekly_Report_${report.user.name.replace(/\s+/g, '_')}_${report.weekStart}.pdf`;
         pdf.save(fileName);
         document.body.removeChild(element);
         onToast('Report downloaded successfully as PDF!', 'success');
@@ -165,85 +204,161 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
   };
 
   return (
-    <div className="reports-layout" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div className="page-header">
+    <div className="reports-layout">
+      {/* Upper Title */}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 className="page-title text-gradient">Report History Logs</h2>
+          <h2 className="page-title text-gradient">Team Submission Tracker</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Review your previously submitted weekly logs and saved drafts.
+            Check team report submissions, compliance stats, and download weekly logs as PDF.
           </p>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#ffffff', border: '1px solid var(--border-glass)', padding: '6px 12px', borderRadius: '8px' }}>
+            <CalendarDays size={16} style={{ color: 'var(--color-primary)' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)' }}>Select Week:</span>
+            <input 
+              type="date" 
+              value={selectedWeek} 
+              onChange={handleWeekChange}
+              style={{ border: 'none', background: 'transparent', outline: 'none', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}
+            />
+          </div>
+          <button 
+            type="button" 
+            className="btn-add" 
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+            onClick={fetchStats}
+          >
+            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      <div className="history-card glass-panel" style={{ marginTop: '20px', padding: '30px' }}>
-        {loading ? (
-          <div className="empty-state">Loading history logs...</div>
-        ) : history.length === 0 ? (
-          <div className="empty-state">No reports submitted or drafted yet.</div>
-        ) : (
-          <div className="history-list">
-            {history.map((report) => (
-              <div 
-                key={report.id} 
-                className="history-item" 
-                onClick={() => setSelectedReport(report)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
-                    <Calendar size={16} style={{ color: 'var(--color-primary)' }} />
-                    <span>Week of {report.weekStart}</span>
-                    <span className={`badge badge-${report.status.toLowerCase()}`}>
-                      {report.status}
-                    </span>
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    Project: <strong style={{ color: 'var(--text-primary)' }}>{report.project.name}</strong>
-                    {report.hoursWorked && ` | Hours: ${report.hoursWorked} hrs`}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <button type="button" className="btn-add" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => setSelectedReport(report)}>
-                    <Eye size={14} /> View
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn-add" 
-                    style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--color-primary)', color: '#ffffff' }} 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditDraft(report.weekStart);
-                    }}
-                  >
-                    Edit
-                  </button>
-                  {report.status === 'DRAFT' && (
-                    <button 
-                      type="button" 
-                      className="btn-remove" 
-                      onClick={(e) => handleDelete(report.id, e)}
-                      title="Delete Draft"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
+      {stats && (
+        <>
+          {/* Stats overview cards grid */}
+          <div className="metrics-grid" style={{ marginTop: '20px' }}>
+            <div className="metric-card glass-panel">
+              <div className="metric-info">
+                <span className="metric-label">Total Members</span>
+                <span className="metric-value">{stats.totalMembers}</span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <div className="metric-icon blue">
+                <Users size={24} />
+              </div>
+            </div>
 
-      {/* Modal Dialog Details overlay */}
+            <div className="metric-card glass-panel">
+              <div className="metric-info">
+                <span className="metric-label">Compliance Rate</span>
+                <span className="metric-value">{stats.complianceRate}%</span>
+              </div>
+              <div className="metric-icon green">
+                <CheckCircle2 size={24} />
+              </div>
+            </div>
+
+            <div className="metric-card glass-panel">
+              <div className="metric-info">
+                <span className="metric-label">Submitted reports</span>
+                <span className="metric-value">{stats.submittedCount}</span>
+              </div>
+              <div className="metric-icon purple">
+                <CalendarDays size={24} />
+              </div>
+            </div>
+
+            <div className="metric-card glass-panel">
+              <div className="metric-info">
+                <span className="metric-label">Pending reports</span>
+                <span className="metric-value">{stats.pendingCount}</span>
+              </div>
+              <div className="metric-icon yellow">
+                <Clock size={24} />
+              </div>
+            </div>
+
+            <div className="metric-card glass-panel">
+              <div className="metric-info">
+                <span className="metric-label">Open Blockers</span>
+                <span className="metric-value">{stats.openBlockersCount}</span>
+              </div>
+              <div className="metric-icon red">
+                <AlertOctagon size={24} />
+              </div>
+            </div>
+          </div>
+
+          {/* Compliance Table card layout */}
+          <div className="glass-panel" style={{ marginTop: '30px', padding: '30px' }}>
+            <h3 className="chart-title" style={{ fontSize: '1.2rem', fontWeight: 600 }}>Team Compliance Tracker</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px', marginBottom: '20px' }}>
+              Detailed logs of weekly statuses for the week starting {selectedWeek}.
+            </p>
+            
+            <div className="compliance-table-wrapper">
+              <table className="compliance-table">
+                <thead>
+                  <tr>
+                    <th>Team Member</th>
+                    <th>Submission Status</th>
+                    <th>Submission Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.memberSubmissionStatus?.map((m) => (
+                    <tr key={m.userId}>
+                      <td>
+                        <div className="compliance-user">{m.name}</div>
+                        <div className="compliance-email">{m.email}</div>
+                      </td>
+                      <td>
+                        {resolveStatusBadge(m.status, selectedWeek)}
+                      </td>
+                      <td style={{ color: 'var(--text-secondary)' }}>
+                        {m.submittedAt ? new Date(m.submittedAt).toLocaleString() : '—'}
+                      </td>
+                      <td>
+                        {m.reportId ? (
+                          <button 
+                            type="button" 
+                            className="btn-details"
+                            onClick={() => viewReportDetails(m.reportId)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 600 }}
+                          >
+                            <Eye size={14} /> View Report
+                          </button>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {stats.memberSubmissionStatus?.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="empty-state">No team members registered yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Reports View Details Overlay */}
       {selectedReport && (
         <div className="report-details-overlay" onClick={() => setSelectedReport(null)}>
           <div className="report-details-modal glass-panel" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <h3>Report Details</h3>
+                <h3>Weekly Report Details</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>
-                  Week Starting {selectedReport.weekStart} | Status: {selectedReport.status}
+                  Submitted by {selectedReport.user.name} for week starting {selectedReport.weekStart}
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto', marginRight: '16px' }}>
@@ -264,7 +379,8 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
                 <Clock size={14} style={{ color: 'var(--color-primary)' }} />
                 General Information
               </h4>
-              <p>Project Category: <strong>{selectedReport.project.name}</strong></p>
+              <p>Team Member: <strong>{selectedReport.user.name} ({selectedReport.user.email})</strong></p>
+              <p>Project / Category: <strong>{selectedReport.project.name}</strong></p>
               {selectedReport.hoursWorked && <p>Hours Worked: <strong>{selectedReport.hoursWorked} hrs</strong></p>}
               {selectedReport.submittedAt && (
                 <p>Submitted At: <strong>{new Date(selectedReport.submittedAt).toLocaleString()}</strong></p>
@@ -311,22 +427,6 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
                 <p style={{ whiteSpace: 'pre-wrap' }}>{selectedReport.notes}</p>
               </div>
             )}
-
-            {(selectedReport.status === 'DRAFT' || selectedReport.status === 'SUBMITTED') && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ width: 'auto', padding: '10px 20px', marginTop: 0 }}
-                  onClick={() => {
-                    setSelectedReport(null);
-                    onEditDraft(selectedReport.weekStart);
-                  }}
-                >
-                  Edit & Re-Submit Report
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -334,4 +434,4 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
   );
 };
 
-export default ReportHistory;
+export default Submissions;
