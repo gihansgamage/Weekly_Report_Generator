@@ -26,6 +26,17 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
     fetchHistory();
   }, []);
 
+  useEffect(() => {
+    if (selectedReport) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedReport]);
+
   const handleDelete = async (id, e) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this report draft?')) return;

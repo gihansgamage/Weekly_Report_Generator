@@ -92,6 +92,17 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
     fetchOwnHistory();
   }, [weekStart]);
 
+  useEffect(() => {
+    if (showPreview) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showPreview]);
+
   const checkExistingReport = (reports, targetWeek) => {
     const existing = reports.find(r => r.weekStart === targetWeek);
     if (existing) {

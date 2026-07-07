@@ -295,3 +295,18 @@
     width: 100%;
   }
 }
+
+/* Custom scrollbar inside modal to look premium */
+.report-details-modal::-webkit-scrollbar {
+  width: 6px;
+}
+.report-details-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.report-details-modal::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+.report-details-modal::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}

@@ -64,6 +64,17 @@ const Submissions = ({ onToast }) => {
     fetchStats();
   }, [selectedWeek]);
 
+  useEffect(() => {
+    if (selectedReport) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedReport]);
+
   const handleWeekChange = (e) => {
     setLoading(true);
     const date = new Date(e.target.value);

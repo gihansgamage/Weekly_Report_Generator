@@ -102,6 +102,17 @@ const AllReports = ({ onToast }) => {
     fetchFilteredReports();
   }, [filterUser, filterProject, filterStartDate, filterEndDate]);
 
+  useEffect(() => {
+    if (selectedReport) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedReport]);
+
   const parseJsonList = (jsonStr) => {
     if (!jsonStr) return [];
     try {

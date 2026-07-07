@@ -12,6 +12,18 @@ const Projects = ({ onToast }) => {
   const [currentId, setCurrentId] = useState(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [deleteCandidateId, setDeleteCandidateId] = useState(null);
+
+  useEffect(() => {
+    if (deleteCandidateId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [deleteCandidateId]);
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -70,17 +82,7 @@ const Projects = ({ onToast }) => {
     setDescription('');
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this project category? This will delete all associated weekly reports.')) return;
-    try {
-      await api.delete(`/projects/${id}`);
-      onToast('Project category deleted successfully', 'success');
-      fetchProjects();
-    } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data || 'Failed to delete project';
-      onToast(typeof errMsg === 'string' ? errMsg : 'Operation failed', 'error');
-    }
-  };
+  // Deletion handled inline within custom confirm popup
 
   return (
     <div className="reports-layout">
@@ -161,7 +163,7 @@ const Projects = ({ onToast }) => {
                     <button type="button" className="btn-remove" style={{ color: 'var(--color-primary)' }} onClick={() => handleEditClick(project)}>
                       <Edit2 size={14} />
                     </button>
-                    <button type="button" className="btn-remove" onClick={() => handleDelete(project.id)}>
+                    <button type="button" className="btn-remove" onClick={() => setDeleteCandidateId(project.id)}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -172,6 +174,52 @@ const Projects = ({ onToast }) => {
         </div>
 
       </div>
+
+      {/* Delete Confirmation Popup Modal */}
+      {deleteCandidateId && (
+        <div className="report-details-overlay" onClick={() => setDeleteCandidateId(null)}>
+          <div className="report-details-modal glass-panel animate-fade-in" style={{ maxWidth: '450px', padding: '30px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={26} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>Delete Category?</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
+                Are you sure you want to delete this project category? This action is permanent and will delete all associated weekly logs submitted by team members.
+              </p>
+              <div style={{ display: 'flex', width: '100%', gap: '12px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ flex: 1, padding: '10px' }}
+                  onClick={() => setDeleteCandidateId(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1, padding: '10px', background: 'var(--color-danger)', borderColor: 'var(--color-danger)', marginTop: 0 }}
+                  onClick={async () => {
+                    const id = deleteCandidateId;
+                    setDeleteCandidateId(null);
+                    try {
+                      await api.delete(`/projects/${id}`);
+                      onToast('Project category deleted successfully', 'success');
+                      fetchProjects();
+                    } catch (err) {
+                      const errMsg = err.response?.data?.message || err.response?.data || 'Failed to delete project';
+                      onToast(typeof errMsg === 'string' ? errMsg : 'Operation failed', 'error');
+                    }
+                  }}
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
