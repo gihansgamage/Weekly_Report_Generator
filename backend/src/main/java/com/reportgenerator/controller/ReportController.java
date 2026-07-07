@@ -5,9 +5,11 @@ import com.reportgenerator.model.Project;
 import com.reportgenerator.model.Report;
 import com.reportgenerator.model.User;
 import com.reportgenerator.repository.ProjectRepository;
+import com.reportgenerator.model.Role;
 import com.reportgenerator.repository.ReportRepository;
 import com.reportgenerator.repository.UserRepository;
 import com.reportgenerator.security.UserDetailsImpl;
+import com.reportgenerator.service.EmailService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,6 +34,9 @@ public class ReportController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private ProjectRepository projectRepository;
@@ -137,6 +142,16 @@ public class ReportController {
             } catch (Exception e) {
                 System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
             }
+
+            try {
+                emailService.sendReportSubmissionConfirmationToUser(user, savedReport);
+                List<User> managers = userRepository.findByRoleAndApprovedTrue(Role.MANAGER);
+                if (!managers.isEmpty()) {
+                    emailService.sendReportSubmissionNotificationToManagers(user, savedReport, managers);
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to send report submission emails: " + e.getMessage());
+            }
         }
         return ResponseEntity.ok(savedReport);
     }
@@ -199,6 +214,16 @@ public class ReportController {
                 ));
             } catch (Exception e) {
                 System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+            }
+
+            try {
+                emailService.sendReportSubmissionConfirmationToUser(updatedReport.getUser(), updatedReport);
+                List<User> managers = userRepository.findByRoleAndApprovedTrue(Role.MANAGER);
+                if (!managers.isEmpty()) {
+                    emailService.sendReportSubmissionNotificationToManagers(updatedReport.getUser(), updatedReport, managers);
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Failed to send report submission emails: " + e.getMessage());
             }
         }
         return ResponseEntity.ok(updatedReport);

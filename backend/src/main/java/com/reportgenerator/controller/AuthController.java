@@ -103,34 +103,22 @@ public class AuthController {
 
         // 1. Send registration acknowledgement email to the user
         try {
-            String userSubject = "Sisenco Digital - Registration Request Received";
-            String userBody = "Dear " + user.getName() + ",\n\n" +
-                    "Your registration request has been successfully submitted to the Sisenco Digital Portal.\n" +
-                    "Your account status is currently: PENDING MANAGER APPROVAL.\n\n" +
-                    "You will receive another email notification as soon as the administrator/manager reviews and approves your request.\n\n" +
-                    "Best regards,\n" +
-                    "Sisenco Digital HR Team";
-            emailService.sendEmail(user.getEmail(), userSubject, userBody);
+            emailService.sendRegistrationAcknowledgementEmail(user.getEmail(), user.getName());
         } catch (Exception e) {
             System.err.println("⚠️ Failed to send user registration acknowledgement email: " + e.getMessage());
         }
 
-        // 2. Notify the administrator/manager (gsgamage4@gmail.com) of the pending request
+        // 2. Notify all approved administrators/managers of the pending request
         try {
-            String adminEmail = "gsgamage4@gmail.com";
-            String adminSubject = "Action Required: New User Registration Approval Pending";
-            String adminBody = "Dear Administrator/Manager,\n\n" +
-                    "A new user has registered on the Sisenco Digital Portal and is awaiting your approval:\n\n" +
-                    "Details:\n" +
-                    "- Name: " + user.getName() + "\n" +
-                    "- Email: " + user.getEmail() + "\n" +
-                    "- Username: @" + user.getUsername() + "\n" +
-                    "- Requested Role: " + user.getRole().name() + "\n\n" +
-                    "Please log into the portal and visit the approvals section to Accept or Decline this registration:\n" +
-                    "Manage Approvals: http://localhost:5173/login\n\n" +
-                    "Best regards,\n" +
-                    "Sisenco Digital Security System";
-            emailService.sendEmail(adminEmail, adminSubject, adminBody);
+            java.util.List<User> managers = userRepository.findByRoleAndApprovedTrue(Role.MANAGER);
+            if (managers.isEmpty()) {
+                // Fallback to sending notification to standard email if no managers are approved yet
+                User fallbackManager = new User();
+                fallbackManager.setEmail("gsgamage4@gmail.com");
+                fallbackManager.setName("System Admin");
+                managers = java.util.Collections.singletonList(fallbackManager);
+            }
+            emailService.sendRegistrationNotificationToManagers(user, managers);
         } catch (Exception e) {
             System.err.println("⚠️ Failed to send manager registration notification email: " + e.getMessage());
         }
