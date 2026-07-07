@@ -6,6 +6,7 @@ import '../styles/Reports.css';
 const Approvals = ({ onToast }) => {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'approve' | 'decline', id: number, name: string }
 
   const fetchRegistrations = async () => {
     setLoading(true);
@@ -23,29 +24,16 @@ const Approvals = ({ onToast }) => {
     fetchRegistrations();
   }, []);
 
-  const handleApprove = async (id, name) => {
-    try {
-      onToast(`Approving ${name}...`, 'info');
-      await api.put(`/admin/registrations/${id}/approve`);
-      onToast(`Account for ${name} approved successfully! Notification email sent.`, 'success');
-      fetchRegistrations();
-    } catch (err) {
-      onToast(err.response?.data || 'Failed to approve account', 'error');
+  useEffect(() => {
+    if (confirmAction) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
-  };
-
-  const handleDecline = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to decline and delete the registration request from ${name}?`)) {
-      return;
-    }
-    try {
-      await api.delete(`/admin/registrations/${id}/decline`);
-      onToast(`Registration for ${name} declined.`, 'success');
-      fetchRegistrations();
-    } catch (err) {
-      onToast(err.response?.data || 'Failed to decline registration', 'error');
-    }
-  };
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [confirmAction]);
 
   return (
     <div className="reports-layout" style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -104,7 +92,7 @@ const Approvals = ({ onToast }) => {
                           type="button"
                           className="btn-add"
                           style={{ padding: '6px 12px', fontSize: '0.8rem', background: 'var(--color-primary)', color: '#ffffff' }}
-                          onClick={() => handleApprove(reg.id, reg.name)}
+                          onClick={() => setConfirmAction({ type: 'approve', id: reg.id, name: reg.name })}
                         >
                           <UserCheck size={14} /> Accept
                         </button>
@@ -112,7 +100,7 @@ const Approvals = ({ onToast }) => {
                           type="button"
                           className="btn-remove"
                           style={{ padding: '6px 12px', fontSize: '0.8rem', border: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          onClick={() => handleDecline(reg.id, reg.name)}
+                          onClick={() => setConfirmAction({ type: 'decline', id: reg.id, name: reg.name })}
                         >
                           <UserX size={14} /> Decline
                         </button>
@@ -125,6 +113,81 @@ const Approvals = ({ onToast }) => {
           </div>
         )}
       </div>
+
+      {/* Action Confirmation Popup Modal */}
+      {confirmAction && (
+        <div className="report-details-overlay" onClick={() => setConfirmAction(null)}>
+          <div className="report-details-modal glass-panel animate-fade-in" style={{ maxWidth: '450px', padding: '30px', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+              <div style={{ 
+                width: '56px', 
+                height: '56px', 
+                borderRadius: '50%', 
+                background: confirmAction.type === 'approve' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                color: confirmAction.type === 'approve' ? 'var(--color-success)' : 'var(--color-danger)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center'
+              }}>
+                {confirmAction.type === 'approve' ? <UserCheck size={26} /> : <UserX size={26} />}
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {confirmAction.type === 'approve' ? 'Approve Registration?' : 'Decline Registration?'}
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
+                {confirmAction.type === 'approve' 
+                  ? `Are you sure you want to approve the registration request for ${confirmAction.name}? They will receive an email and be able to log in.`
+                  : `Are you sure you want to decline and delete the registration request from ${confirmAction.name}? This cannot be undone.`}
+              </p>
+              <div style={{ display: 'flex', width: '100%', gap: '12px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ flex: 1, padding: '10px' }}
+                  onClick={() => setConfirmAction(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ 
+                    flex: 1, 
+                    padding: '10px', 
+                    background: confirmAction.type === 'approve' ? 'var(--color-primary)' : 'var(--color-danger)', 
+                    borderColor: confirmAction.type === 'approve' ? 'var(--color-primary)' : 'var(--color-danger)', 
+                    marginTop: 0 
+                  }}
+                  onClick={async () => {
+                    const { type, id, name } = confirmAction;
+                    setConfirmAction(null);
+                    if (type === 'approve') {
+                      try {
+                        onToast(`Approving ${name}...`, 'info');
+                        await api.put(`/admin/registrations/${id}/approve`);
+                        onToast(`Account for ${name} approved successfully! Notification email sent.`, 'success');
+                        fetchRegistrations();
+                      } catch (err) {
+                        onToast(err.response?.data || 'Failed to approve account', 'error');
+                      }
+                    } else {
+                      try {
+                        await api.delete(`/admin/registrations/${id}/decline`);
+                        onToast(`Registration for ${name} declined.`, 'success');
+                        fetchRegistrations();
+                      } catch (err) {
+                        onToast(err.response?.data || 'Failed to decline registration', 'error');
+                      }
+                    }
+                  }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
