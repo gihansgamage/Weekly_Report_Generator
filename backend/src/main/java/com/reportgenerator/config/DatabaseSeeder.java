@@ -33,42 +33,14 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("✅ Default project categories seeded successfully!");
         }
 
-        // 2. Seed Users
-        if (userRepository.count() == 0) {
-            // Seed a Manager (Admin)
-            User manager = new User(
-                    "manager@example.com",
-                    passwordEncoder.encode("manager123"),
-                    "Jane Doe (Manager)",
-                    Role.MANAGER
-            );
-            manager.setUsername("manager");
-            manager.setApproved(true);
-            userRepository.save(manager);
+        // 2. Seed Users & Clean up Demo Accounts
+        // Purge old demo login accounts if they exist in DB
+        userRepository.findByEmail("manager@example.com").ifPresent(userRepository::delete);
+        userRepository.findByEmail("member@example.com").ifPresent(userRepository::delete);
+        userRepository.findByEmail("dev@example.com").ifPresent(userRepository::delete);
 
-            // Seed a Team Member
-            User member1 = new User(
-                    "member@example.com",
-                    passwordEncoder.encode("member123"),
-                    "John Smith (Member)",
-                    Role.MEMBER
-            );
-            member1.setUsername("member");
-            member1.setApproved(true);
-            userRepository.save(member1);
-
-            // Seed another Team Member for compliance demo
-            User member2 = new User(
-                    "dev@example.com",
-                    passwordEncoder.encode("member123"),
-                    "Alex Carter (Developer)",
-                    Role.MEMBER
-            );
-            member2.setUsername("dev");
-            member2.setApproved(true);
-            userRepository.save(member2);
-
-            // Seed the requested Admin Gmail manager
+        java.util.Optional<User> adminOpt = userRepository.findByEmail("gsgamage4@gmail.com");
+        if (adminOpt.isEmpty()) {
             User adminGmail = new User(
                     "gsgamage4@gmail.com",
                     passwordEncoder.encode("admin123"),
@@ -78,44 +50,13 @@ public class DatabaseSeeder implements CommandLineRunner {
             adminGmail.setUsername("admin");
             adminGmail.setApproved(true);
             userRepository.save(adminGmail);
-
-            System.out.println("✅ Seeded default accounts successfully (including gsgamage4@gmail.com admin)!");
+            System.out.println("✅ Seeded original manager account (gsgamage4@gmail.com) successfully!");
         } else {
-            // Ensure pre-existing demo accounts are set to approved = true
-            userRepository.findByEmail("manager@example.com").ifPresent(u -> {
-                u.setApproved(true);
-                u.setUsername("manager");
-                userRepository.save(u);
-            });
-            userRepository.findByEmail("member@example.com").ifPresent(u -> {
-                u.setApproved(true);
-                u.setUsername("member");
-                userRepository.save(u);
-            });
-            userRepository.findByEmail("dev@example.com").ifPresent(u -> {
-                u.setApproved(true);
-                u.setUsername("dev");
-                userRepository.save(u);
-            });
-            
-            java.util.Optional<User> adminOpt = userRepository.findByEmail("gsgamage4@gmail.com");
-            if (adminOpt.isPresent()) {
-                User admin = adminOpt.get();
-                admin.setApproved(true);
-                admin.setUsername("admin");
-                userRepository.save(admin);
-            } else {
-                User adminGmail = new User(
-                        "gsgamage4@gmail.com",
-                        passwordEncoder.encode("admin123"),
-                        "System Admin",
-                        Role.MANAGER
-                );
-                adminGmail.setUsername("admin");
-                adminGmail.setApproved(true);
-                userRepository.save(adminGmail);
-            }
-            System.out.println("✅ Synchronized and approved existing seed accounts successfully!");
+            User admin = adminOpt.get();
+            admin.setApproved(true);
+            admin.setUsername("admin");
+            userRepository.save(admin);
+            System.out.println("✅ Synchronized original manager account successfully!");
         }
     }
 }

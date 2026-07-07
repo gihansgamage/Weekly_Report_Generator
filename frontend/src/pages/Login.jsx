@@ -181,11 +181,7 @@ const Login = ({ onToast }) => {
     }
   };
 
-  const fillDemoCredentials = (email, password) => {
-    setLoginEmail(email);
-    setLoginPassword(password);
-    setIsLogin(true);
-  };
+  // Demo fill helper removed
 
   return (
     <div className="login-container">
@@ -445,15 +441,6 @@ const Login = ({ onToast }) => {
           </>
         )}
 
-        <div className="demo-credentials">
-          <div className="demo-credentials-title">⚡ Quick Demo Logins</div>
-          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('manager', 'manager123')}>
-            Manager Username: <strong>manager</strong> / <code>manager123</code> (Click to fill)
-          </p>
-          <p style={{ cursor: 'pointer' }} onClick={() => fillDemoCredentials('member', 'member123')}>
-            Member Username: <strong>member</strong> / <code>member123</code> (Click to fill)
-          </p>
-        </div>
       </div>
     </div>
   );
