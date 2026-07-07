@@ -85,55 +85,73 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
     const blockersList = parseJsonList(report.blockers);
     const hasBlockers = blockersList.some(b => b.toLowerCase() !== 'none');
     
-    const completedHtml = completedTasks.map(t => `<li style="margin-bottom: 8px; font-size: 0.95rem;">${t}</li>`).join('');
-    const plannedHtml = plannedTasks.map(p => `<li style="margin-bottom: 8px; font-size: 0.95rem;">${p}</li>`).join('');
-    const blockersHtml = blockersList.map(b => `<li class="${b.toLowerCase() !== 'none' ? 'blocker-warn' : ''}" style="margin-bottom: 8px; font-size: 0.95rem; ${b.toLowerCase() !== 'none' ? 'color: #dc2626; font-weight: 500;' : ''}">${b}</li>`).join('');
+    const completedHtml = completedTasks.map(t => `<li style="margin-bottom: 8px; font-size: 0.95rem; color: #334155;">${t}</li>`).join('');
+    const plannedHtml = plannedTasks.map(p => `<li style="margin-bottom: 8px; font-size: 0.95rem; color: #334155;">${p}</li>`).join('');
+    const blockersHtml = blockersList.map(b => `<li style="margin-bottom: 8px; font-size: 0.95rem; color: #334155;">${b}</li>`).join('');
     
     // Fallback names if report.user is empty/missing
     const userName = report.user?.name || 'Team Member';
     const userEmail = report.user?.email || '';
 
     element.innerHTML = `
-      <div style="border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px; background: #ffffff; box-shadow: 0 10px 25px rgba(0,0,0,0.02);">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1ba883; padding-bottom: 20px; margin-bottom: 30px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.8rem; font-weight: 700; color: #1ba883;">Sisenco Digital</span>
+      <div style="border: 2px solid #0f172a; padding: 40px; background: #ffffff;">
+        <div style="border-bottom: 2px solid #0f172a; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+          <div>
+            <div style="font-size: 2rem; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase;">SISENCO DIGITAL</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Enterprise Work Management Portal</div>
           </div>
-          <span style="background: rgba(27, 168, 131, 0.1); color: #1ba883; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Weekly Status Report</span>
+          <div style="text-align: right;">
+            <div style="font-size: 1.15rem; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">Weekly Status Report</div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">Date Generated: ${new Date().toLocaleDateString()}</div>
+          </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 30px; font-size: 0.95rem;">
-          <div><strong>Team Member:</strong> ${userName} ${userEmail ? `(${userEmail})` : ''}</div>
-          <div><strong>Reporting Week:</strong> Week starting ${report.weekStart}</div>
-          <div><strong>Project / Category:</strong> ${report.project.name}</div>
-          <div><strong>Hours Logged:</strong> ${report.hoursWorked ? `${report.hoursWorked} hrs` : '—'}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 30px; font-size: 0.9rem; color: #334155;">
+          <div><span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; display: block; margin-bottom: 2px;">Team Member</span><strong style="color: #0f172a; font-size: 0.95rem;">${userName}</strong> ${userEmail ? `<span style="color: #64748b; font-size: 0.85rem;">(${userEmail})</span>` : ''}</div>
+          <div><span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; display: block; margin-bottom: 2px;">Reporting Period</span><strong style="color: #0f172a; font-size: 0.95rem;">Week of ${report.weekStart}</strong></div>
+          <div><span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; display: block; margin-bottom: 2px;">Project Category</span><strong style="color: #0f172a; font-size: 0.95rem;">${report.project.name}</strong></div>
+          <div><span style="color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; display: block; margin-bottom: 2px;">Effort Logged</span><strong style="color: #0f172a; font-size: 0.95rem;">${report.hoursWorked ? `${report.hoursWorked} hours` : 'N/A'}</strong></div>
         </div>
 
-        <div style="margin-bottom: 25px;">
-          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid #1ba883; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Tasks Completed This Week</h3>
-          <ul style="padding-left: 20px;">${completedHtml}</ul>
+        <div style="margin-bottom: 30px;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">1. Tasks Completed</h3>
+          <ul style="padding-left: 18px; margin: 0; color: #334155; line-height: 1.6;">${completedHtml}</ul>
         </div>
 
-        <div style="margin-bottom: 25px;">
-          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid #1ba883; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Planned Tasks For Next Week</h3>
-          <ul style="padding-left: 20px;">${plannedHtml}</ul>
+        <div style="margin-bottom: 30px;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">2. Tasks Planned for Next Week</h3>
+          <ul style="padding-left: 18px; margin: 0; color: #334155; line-height: 1.6;">${plannedHtml}</ul>
         </div>
 
-        <div style="margin-bottom: 25px;">
-          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid ${hasBlockers ? '#dc2626' : '#1ba883'}; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Blockers & Challenges</h3>
-          <ul style="padding-left: 20px;">${blockersHtml}</ul>
+        <div style="margin-bottom: 30px;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">3. Blockers & Challenges</h3>
+          <ul style="padding-left: 18px; margin: 0; color: #334155; line-height: 1.6;">${blockersHtml}</ul>
         </div>
 
         ${report.notes ? `
-        <div style="margin-bottom: 25px;">
-          <h3 style="font-size: 1.1rem; font-weight: 600; color: #111827; border-left: 4px solid #1ba883; padding-left: 10px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Additional Notes</h3>
-          <div style="background: #f3f4f6; border-radius: 8px; padding: 15px; font-size: 0.95rem; white-space: pre-wrap; border: 1px solid #e5e7eb;">${report.notes}</div>
+        <div style="margin-bottom: 30px;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">4. Additional Notes</h3>
+          <div style="background: #f8fafc; border-radius: 6px; padding: 15px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid #e2e8f0; color: #334155; line-height: 1.5;">${report.notes}</div>
         </div>
         ` : ''}
 
-        <div style="margin-top: 50px; border-top: 1px solid #e5e7eb; padding-top: 15px; text-align: center; font-size: 0.8rem; color: #9ca3af;">
-          This report is a system-generated document from Sisenco Digital Weekly Work Planner.<br>
-          Generated on: ${new Date().toLocaleString()}
+        <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; font-size: 0.85rem; color: #475569;">
+          <div>
+            <div style="border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 40px; text-align: center;">
+              <strong>Team Member Signature</strong>
+            </div>
+          </div>
+          <div>
+            <div style="border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 40px; text-align: center;">
+              <strong>Reviewer / Manager Signature</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 60px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 0.75rem; color: #94a3b8; line-height: 1.4;">
+          CONFIDENTIAL — INTERNAL USE ONLY<br>
+          This document is generated by the Sisenco Digital Weekly Work Planner. All data is stored securely.<br>
+          Sisenco Digital portal © 2026. All Rights Reserved.
         </div>
       </div>
     `;
