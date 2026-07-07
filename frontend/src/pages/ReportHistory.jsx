@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Eye, Trash2, Calendar, Clock, BookOpen, AlertCircle, Download } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import '../styles/Reports.css';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const ReportHistory = ({ onToast, onEditDraft }) => {
+  const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
+
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    if (hrs < 12) return 'Good morning';
+    if (hrs < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -179,6 +188,9 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
     <div className="reports-layout" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div className="page-header">
         <div>
+          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-primary)', display: 'block', marginBottom: '4px' }}>
+            {getGreeting()}, {user?.name || 'Member'} !
+          </span>
           <h2 className="page-title text-gradient">Report History Logs</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
             Review your previously submitted weekly logs and saved drafts.

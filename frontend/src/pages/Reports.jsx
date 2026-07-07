@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Trash2, Calendar, FileText, Lock, Save, Send, Eye } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import '../styles/Reports.css';
 
 const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
+  const { user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
+
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    if (hrs < 12) return 'Good morning';
+    if (hrs < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
   
   // Format weekStart (defaulting to the Monday of the current week)
   const getMonday = (d) => {
@@ -211,6 +220,9 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
     <div className="reports-layout">
       <div className="page-header">
         <div>
+          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-primary)', display: 'block', marginBottom: '4px' }}>
+            {getGreeting()}, {user?.name || 'Member'} !
+          </span>
           <h2 className="page-title text-gradient">Weekly Report Entry</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
             Submit structured details for each billing week.

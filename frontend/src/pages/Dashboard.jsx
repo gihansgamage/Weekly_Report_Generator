@@ -4,6 +4,7 @@ import {
   Users, CheckCircle2, AlertOctagon, RefreshCw, 
   BarChart4, CalendarDays, Briefcase, Clock
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, LineChart, Line, Cell
@@ -12,6 +13,15 @@ import '../styles/Dashboard.css';
 import '../styles/Reports.css';
 
 const Dashboard = ({ onToast }) => {
+  const { user } = useAuth();
+
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    if (hrs < 12) return 'Good morning';
+    if (hrs < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const getMonday = (d) => {
     const date = new Date(d);
     const day = date.getDay();
@@ -58,6 +68,9 @@ const Dashboard = ({ onToast }) => {
     <div className="dashboard-layout animate-fade-in">
       <div className="page-header">
         <div>
+          <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-primary)', display: 'block', marginBottom: '4px' }}>
+            {getGreeting()}, {user?.name || 'Manager'} !
+          </span>
           <h2 className="page-title text-gradient font-sans">Team Dashboard</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
             Consolidated weekly compliance reviews, blockers, and project activity insights.
