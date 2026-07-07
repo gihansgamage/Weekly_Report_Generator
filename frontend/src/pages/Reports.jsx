@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, Calendar, FileText, Lock, Save, Send, Eye } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, Lock, Save, Send, Eye, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Reports.css';
 
@@ -48,6 +48,7 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
   const [isLocked, setIsLocked] = useState(false);
   const [userReports, setUserReports] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePreviewReport = () => {
     if (!selectedProject) {
@@ -117,7 +118,7 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
     if (existing) {
       setIsEditMode(true);
       setEditingReportId(existing.id);
-      setSelectedProject(existing.project.id);
+      setSelectedProject(existing.project ? existing.project.id : '');
       setHoursWorked(existing.hoursWorked || '');
       setNotes(existing.notes || '');
       
@@ -202,6 +203,7 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
       status: status
     };
 
+    setIsSubmitting(true);
     try {
       if (isEditMode) {
         await api.put(`/reports/${editingReportId}`, payload);
@@ -213,6 +215,8 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
     } catch (err) {
       const errMsg = err.response?.data?.message || err.response?.data || 'Failed to save report';
       onToast(typeof errMsg === 'string' ? errMsg : 'Operation failed', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -424,17 +428,35 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
 
         {!isLocked && (
           <div className="form-actions">
-            <button type="button" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }} onClick={handlePreviewReport}>
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }} 
+              onClick={handlePreviewReport}
+              disabled={isSubmitting}
+            >
               <Eye size={16} />
               Preview Report
             </button>
-            <button type="button" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleSubmitReport('DRAFT')}>
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }} 
+              onClick={() => handleSubmitReport('DRAFT')}
+              disabled={isSubmitting}
+            >
               <Save size={16} />
-              Save Draft
+              {isSubmitting ? 'Saving...' : 'Save Draft'}
             </button>
-            <button type="button" className="btn-primary" style={{ width: 'auto', padding: '12px 28px', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleSubmitReport('SUBMITTED')}>
+            <button 
+              type="button" 
+              className="btn-primary" 
+              style={{ width: 'auto', padding: '12px 28px', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }} 
+              onClick={() => handleSubmitReport('SUBMITTED')}
+              disabled={isSubmitting}
+            >
               <Send size={16} />
-              Submit Report
+              {isSubmitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         )}
@@ -464,7 +486,7 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
               </div>
               <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
                 <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Project Category</div>
-                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{projects.find(p => p.id.toString() === selectedProject.toString())?.name || 'N/A'}</strong>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{projects.find(p => String(p.id) === String(selectedProject))?.name || 'N/A'}</strong>
               </div>
               <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
                 <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Hours Logged</div>
@@ -551,12 +573,14 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
                 type="button"
                 className="btn-primary"
                 style={{ width: 'auto', padding: '10px 24px', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
-                onClick={() => {
+                onClick={async () => {
+                  await handleSubmitReport('SUBMITTED');
                   setShowPreview(false);
-                  handleSubmitReport('SUBMITTED');
                 }}
+                disabled={isSubmitting}
               >
-                <Send size={14} /> Confirm & Submit
+                <Send size={14} /> 
+                {isSubmitting ? 'Submitting...' : 'Confirm & Submit'}
               </button>
             </div>
           </div>
