@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Trash2, Calendar, FileText, Lock, Save, Send } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, Lock, Save, Send, Eye } from 'lucide-react';
 import '../styles/Reports.css';
 
 const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
@@ -38,6 +38,28 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
   const [editingReportId, setEditingReportId] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
   const [userReports, setUserReports] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const handlePreviewReport = () => {
+    if (!selectedProject) {
+      onToast('Please select a project category', 'error');
+      return;
+    }
+
+    const activeTasks = tasksCompleted.filter(t => t.trim() !== '');
+    const activePlanned = tasksPlanned.filter(p => p.trim() !== '');
+
+    if (activeTasks.length === 0) {
+      onToast('Please describe at least one completed task', 'error');
+      return;
+    }
+    if (activePlanned.length === 0) {
+      onToast('Please describe at least one planned task for next week', 'error');
+      return;
+    }
+
+    setShowPreview(true);
+  };
 
   // Fetch projects list
   useEffect(() => {
@@ -379,6 +401,10 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
 
         {!isLocked && (
           <div className="form-actions">
+            <button type="button" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: 'auto' }} onClick={handlePreviewReport}>
+              <Eye size={16} />
+              Preview Report
+            </button>
             <button type="button" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleSubmitReport('DRAFT')}>
               <Save size={16} />
               Save Draft
@@ -390,6 +416,105 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
           </div>
         )}
       </div>
+
+      {showPreview && (
+        <div className="report-details-overlay" onClick={() => setShowPreview(false)}>
+          <div className="report-details-modal glass-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3 className="text-gradient" style={{ fontSize: '1.4rem', fontWeight: 700 }}>Weekly Report Preview</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>
+                  Review your information before submitting
+                </p>
+              </div>
+              <button className="modal-close" onClick={() => setShowPreview(false)}>&times;</button>
+            </div>
+
+            <div className="details-section">
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={14} style={{ color: 'var(--color-primary)' }} />
+                General Information
+              </h4>
+              <p style={{ margin: '6px 0' }}>Reporting Week: <strong>Week starting {weekStart}</strong></p>
+              <p style={{ margin: '6px 0' }}>Project Category: <strong>{projects.find(p => p.id.toString() === selectedProject.toString())?.name || 'N/A'}</strong></p>
+              <p style={{ margin: '6px 0' }}>Hours Logged: <strong>{hoursWorked ? `${hoursWorked} hrs` : '—'}</strong></p>
+            </div>
+
+            <div className="details-section">
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={14} style={{ color: 'var(--color-primary)' }} />
+                Tasks Completed This Week
+              </h4>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                {tasksCompleted.filter(t => t.trim() !== '').map((item, idx) => (
+                  <li key={idx} style={{ marginBottom: '6px' }}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="details-section">
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={14} style={{ color: 'var(--color-primary)' }} />
+                Planned Tasks For Next Week
+              </h4>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                {tasksPlanned.filter(p => p.trim() !== '').map((item, idx) => (
+                  <li key={idx} style={{ marginBottom: '6px' }}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="details-section">
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', color: blockers.filter(b => b.trim() !== '').length > 0 ? 'var(--color-danger)' : 'var(--text-secondary)' }}>
+                Blockers / Challenges
+              </h4>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                {blockers.filter(b => b.trim() !== '').length > 0 ? (
+                  blockers.filter(b => b.trim() !== '').map((item, idx) => (
+                    <li key={idx} style={{ color: 'var(--color-danger)', marginBottom: '6px' }}>{item}</li>
+                  ))
+                ) : (
+                  <li style={{ color: 'var(--text-secondary)', listStyleType: 'none', marginLeft: '-20px' }}>None</li>
+                )}
+              </ul>
+            </div>
+
+            {notes && notes.trim() !== '' && (
+              <div className="details-section">
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={14} style={{ color: 'var(--color-primary)' }} />
+                  Additional Notes
+                </h4>
+                <p style={{ whiteSpace: 'pre-wrap', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
+                  {notes}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px', borderTop: '1px solid var(--border-glass)', paddingTop: '20px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ padding: '10px 20px' }}
+                onClick={() => setShowPreview(false)}
+              >
+                Close Preview
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ width: 'auto', padding: '10px 24px', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                onClick={() => {
+                  setShowPreview(false);
+                  handleSubmitReport('SUBMITTED');
+                }}
+              >
+                <Send size={14} /> Confirm & Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
