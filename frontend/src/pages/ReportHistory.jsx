@@ -239,88 +239,121 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
       {selectedReport && (
         <div className="report-details-overlay" onClick={() => setSelectedReport(null)}>
           <div className="report-details-modal glass-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+            <div className="modal-header" style={{ borderBottom: '1px solid var(--border-glass)', paddingBottom: '20px', marginBottom: '24px' }}>
               <div>
-                <h3>Report Details</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>
-                  Week Starting {selectedReport.weekStart} | Status: {selectedReport.status}
+                <span className="text-gradient" style={{ fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={22} style={{ color: 'var(--color-primary)' }} />
+                  Week of {selectedReport.weekStart}
+                </span>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '6px' }}>
+                  My Report Details
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto', marginRight: '16px' }}>
-                <button 
-                  type="button" 
-                  className="btn-primary" 
-                  style={{ width: 'auto', padding: '8px 16px', fontSize: '0.85rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
-                  onClick={() => handleDownloadReport(selectedReport)}
-                >
-                  <Download size={14} /> Download PDF
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto', marginRight: '16px' }}>
+                <span className={`badge badge-${selectedReport.status.toLowerCase()}`}>
+                  {selectedReport.status}
+                </span>
+                {selectedReport.status === 'SUBMITTED' && (
+                  <button 
+                    type="button" 
+                    className="btn-primary" 
+                    style={{ width: 'auto', padding: '8px 16px', fontSize: '0.85rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+                    onClick={() => handleDownloadReport(selectedReport)}
+                  >
+                    <Download size={14} /> Download PDF
+                  </button>
+                )}
               </div>
               <button className="modal-close" onClick={() => setSelectedReport(null)}>&times;</button>
             </div>
 
-            <div className="details-section">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={14} style={{ color: 'var(--color-primary)' }} />
-                General Information
-              </h4>
-              <p>Project Category: <strong>{selectedReport.project.name}</strong></p>
-              {selectedReport.hoursWorked && <p>Hours Worked: <strong>{selectedReport.hoursWorked} hrs</strong></p>}
+            {/* General Metadata Info Grid */}
+            <div className="details-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Project Category</div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{selectedReport.project.name}</strong>
+              </div>
+              <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Hours Logged</div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{selectedReport.hoursWorked ? `${selectedReport.hoursWorked} hrs` : '—'}</strong>
+              </div>
               {selectedReport.submittedAt && (
-                <p>Submitted At: <strong>{new Date(selectedReport.submittedAt).toLocaleString()}</strong></p>
+                <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Submitted Time</div>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{new Date(selectedReport.submittedAt).toLocaleDateString()}</strong>
+                </div>
               )}
             </div>
 
-            <div className="details-section">
-              <h4>Tasks Completed</h4>
-              <ul>
-                {parseJsonList(selectedReport.tasksCompleted).map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="details-section">
-              <h4>Tasks Planned (Next Week)</h4>
-              <ul>
-                {parseJsonList(selectedReport.tasksPlanned).map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="details-section">
-              <h4 style={{ color: parseJsonList(selectedReport.blockers).some(b => b.toLowerCase() !== 'none') ? 'var(--color-danger)' : 'var(--text-secondary)' }}>
-                Blockers / Challenges
+            {/* Tasks Completed Section */}
+            <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', borderRadius: '50%', fontSize: '0.8rem' }}>✓</span>
+                Tasks Completed This Week
               </h4>
-              <ul>
-                {parseJsonList(selectedReport.blockers).map((item, idx) => (
-                  <li key={idx} style={{ color: item.toLowerCase() !== 'none' ? 'var(--color-danger)' : 'inherit' }}>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0 }}>
+                {parseJsonList(selectedReport.tasksCompleted).map((item, idx) => (
+                  <li key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <span style={{ color: 'var(--color-success)', marginTop: '4px' }}>•</span>
                     {item}
                   </li>
                 ))}
               </ul>
             </div>
 
+            {/* Tasks Planned Section */}
+            <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', background: 'rgba(8, 145, 178, 0.1)', color: 'var(--color-accent)', borderRadius: '50%', fontSize: '0.8rem' }}>➔</span>
+                Tasks Planned For Next Week
+              </h4>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0 }}>
+                {parseJsonList(selectedReport.tasksPlanned).map((item, idx) => (
+                  <li key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <span style={{ color: 'var(--color-accent)', marginTop: '4px' }}>•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Blockers Section */}
+            <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: parseJsonList(selectedReport.blockers).some(b => b.toLowerCase() !== 'none') ? 'var(--color-danger)' : 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', background: parseJsonList(selectedReport.blockers).some(b => b.toLowerCase() !== 'none') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)', color: parseJsonList(selectedReport.blockers).some(b => b.toLowerCase() !== 'none') ? 'var(--color-danger)' : 'var(--text-muted)', borderRadius: '50%', fontSize: '0.8rem' }}>!</span>
+                Blockers & Challenges
+              </h4>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0 }}>
+                {parseJsonList(selectedReport.blockers).map((item, idx) => (
+                  <li key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: item.toLowerCase() !== 'none' ? 'var(--color-danger)' : 'var(--text-primary)', fontWeight: item.toLowerCase() !== 'none' ? 500 : 'normal', lineHeight: '1.5' }}>
+                    <span style={{ color: item.toLowerCase() !== 'none' ? 'var(--color-danger)' : 'var(--text-muted)', marginTop: '4px' }}>•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Manager Suggestions */}
             {selectedReport.blockerSuggestions && (
-              <div className="details-section" style={{ marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-success)' }}>
-                  <BookOpen size={14} style={{ color: 'var(--color-success)' }} />
-                  Manager's Suggestions / Solutions for Blockers
+              <div className="details-section" style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(20, 143, 110, 0.05) 100%)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--color-success)', borderBottom: '1px solid rgba(16, 185, 129, 0.15)', paddingBottom: '10px', marginBottom: '12px' }}>
+                  <BookOpen size={16} style={{ color: 'var(--color-success)' }} />
+                  Manager's Suggestions / Solutions
                 </h4>
-                <p style={{ whiteSpace: 'pre-wrap', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', padding: '12px', marginTop: '8px', color: 'var(--color-success)', fontWeight: 500 }}>
+                <p style={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', color: 'var(--color-secondary)', lineHeight: '1.6', fontWeight: 500, margin: 0 }}>
                   {selectedReport.blockerSuggestions}
                 </p>
               </div>
             )}
 
+            {/* Additional Notes */}
             {selectedReport.notes && (
-              <div className="details-section">
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <BookOpen size={14} style={{ color: 'var(--color-primary)' }} />
+              <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                  <BookOpen size={16} style={{ color: 'var(--color-primary)' }} />
                   Additional Notes
                 </h4>
-                <p style={{ whiteSpace: 'pre-wrap' }}>{selectedReport.notes}</p>
+                <p style={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>{selectedReport.notes}</p>
               </div>
             )}
 

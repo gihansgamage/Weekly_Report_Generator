@@ -420,74 +420,98 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
       {showPreview && (
         <div className="report-details-overlay" onClick={() => setShowPreview(false)}>
           <div className="report-details-modal glass-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+            <div className="modal-header" style={{ borderBottom: '1px solid var(--border-glass)', paddingBottom: '20px', marginBottom: '24px' }}>
               <div>
-                <h3 className="text-gradient" style={{ fontSize: '1.4rem', fontWeight: 700 }}>Weekly Report Preview</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>
+                <span className="text-gradient" style={{ fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={22} style={{ color: 'var(--color-primary)' }} />
+                  Weekly Report Preview
+                </span>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '6px' }}>
                   Review your information before submitting
                 </p>
               </div>
               <button className="modal-close" onClick={() => setShowPreview(false)}>&times;</button>
             </div>
 
-            <div className="details-section">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Calendar size={14} style={{ color: 'var(--color-primary)' }} />
-                General Information
-              </h4>
-              <p style={{ margin: '6px 0' }}>Reporting Week: <strong>Week starting {weekStart}</strong></p>
-              <p style={{ margin: '6px 0' }}>Project Category: <strong>{projects.find(p => p.id.toString() === selectedProject.toString())?.name || 'N/A'}</strong></p>
-              <p style={{ margin: '6px 0' }}>Hours Logged: <strong>{hoursWorked ? `${hoursWorked} hrs` : '—'}</strong></p>
+            {/* General Metadata Info Grid */}
+            <div className="details-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Reporting Week</div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>Week of {weekStart}</strong>
+              </div>
+              <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Project Category</div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{projects.find(p => p.id.toString() === selectedProject.toString())?.name || 'N/A'}</strong>
+              </div>
+              <div style={{ background: 'rgba(27, 168, 131, 0.03)', border: '1px solid var(--border-glass)', padding: '14px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>Hours Logged</div>
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>{hoursWorked ? `${hoursWorked} hrs` : '—'}</strong>
+              </div>
             </div>
 
-            <div className="details-section">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FileText size={14} style={{ color: 'var(--color-primary)' }} />
+            {/* Tasks Completed Section */}
+            <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--color-success)', borderRadius: '50%', fontSize: '0.8rem' }}>✓</span>
                 Tasks Completed This Week
               </h4>
-              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0 }}>
                 {tasksCompleted.filter(t => t.trim() !== '').map((item, idx) => (
-                  <li key={idx} style={{ marginBottom: '6px' }}>{item}</li>
+                  <li key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <span style={{ color: 'var(--color-success)', marginTop: '4px' }}>•</span>
+                    {item}
+                  </li>
                 ))}
               </ul>
             </div>
 
-            <div className="details-section">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FileText size={14} style={{ color: 'var(--color-primary)' }} />
-                Planned Tasks For Next Week
+            {/* Tasks Planned Section */}
+            <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', background: 'rgba(8, 145, 178, 0.1)', color: 'var(--color-accent)', borderRadius: '50%', fontSize: '0.8rem' }}>➔</span>
+                Tasks Planned For Next Week
               </h4>
-              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0 }}>
                 {tasksPlanned.filter(p => p.trim() !== '').map((item, idx) => (
-                  <li key={idx} style={{ marginBottom: '6px' }}>{item}</li>
+                  <li key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                    <span style={{ color: 'var(--color-accent)', marginTop: '4px' }}>•</span>
+                    {item}
+                  </li>
                 ))}
               </ul>
             </div>
 
-            <div className="details-section">
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', color: blockers.filter(b => b.trim() !== '').length > 0 ? 'var(--color-danger)' : 'var(--text-secondary)' }}>
-                Blockers / Challenges
+            {/* Blockers Section */}
+            <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: blockers.filter(b => b.trim() !== '').length > 0 ? 'var(--color-danger)' : 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', background: blockers.filter(b => b.trim() !== '').length > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(107, 114, 128, 0.1)', color: blockers.filter(b => b.trim() !== '').length > 0 ? 'var(--color-danger)' : 'var(--text-muted)', borderRadius: '50%', fontSize: '0.8rem' }}>!</span>
+                Blockers & Challenges
               </h4>
-              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+              <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0 }}>
                 {blockers.filter(b => b.trim() !== '').length > 0 ? (
                   blockers.filter(b => b.trim() !== '').map((item, idx) => (
-                    <li key={idx} style={{ color: 'var(--color-danger)', marginBottom: '6px' }}>{item}</li>
+                    <li key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: 'var(--color-danger)', fontWeight: 500, lineHeight: '1.5' }}>
+                      <span style={{ color: 'var(--color-danger)', marginTop: '4px' }}>•</span>
+                      {item}
+                    </li>
                   ))
                 ) : (
-                  <li style={{ color: 'var(--text-secondary)', listStyleType: 'none', marginLeft: '-20px' }}>None</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '8px', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                    <span style={{ color: 'var(--text-muted)', marginTop: '4px' }}>•</span>
+                    None
+                  </li>
                 )}
               </ul>
             </div>
 
+            {/* Additional Notes */}
             {notes && notes.trim() !== '' && (
-              <div className="details-section">
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FileText size={14} style={{ color: 'var(--color-primary)' }} />
+              <div className="details-section" style={{ background: 'rgba(255, 255, 255, 0.4)', border: '1px solid var(--border-glass)', borderRadius: '16px', padding: '20px', marginBottom: '20px' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px', marginBottom: '12px' }}>
+                  <BookOpen size={16} style={{ color: 'var(--color-primary)' }} />
                   Additional Notes
                 </h4>
-                <p style={{ whiteSpace: 'pre-wrap', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: '8px', padding: '12px', marginTop: '8px' }}>
-                  {notes}
-                </p>
+                <p style={{ whiteSpace: 'pre-wrap', fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>{notes}</p>
               </div>
             )}
 
