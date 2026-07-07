@@ -81,6 +81,26 @@ public class EmailService {
     }
 
     /**
+     * Sends registration decline notification email to the user.
+     */
+    public void sendRegistrationDeclineEmail(String toEmail, String name) {
+        String subject = "Sisenco Digital - Registration Request Update";
+        String content = "<p>Dear <strong>" + escapeHtml(name) + "</strong>,</p>\n" +
+                "<p>Thank you for your interest in Sisenco Digital portal.</p>\n" +
+                "<p>We regret to inform you that your registration application has been declined by the system administrator at this time.</p>\n" +
+                "<p>If you believe this was an error or wish to apply again, please contact our support department or re-submit a registration application with the correct details.</p>";
+
+        String html = buildTemplate(
+                "Registration Declined",
+                "Registration Request Declined",
+                content,
+                "Contact Support",
+                "mailto:support@sisenco.com"
+        );
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    /**
      * Sends OTP code email for profile updates.
      */
     public void sendOtpEmail(String toEmail, String otpCode) {
@@ -139,10 +159,6 @@ public class EmailService {
                 "    <tr>\n" +
                 "        <td style=\"padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569;\">Email Address</td>\n" +
                 "        <td style=\"padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a;\">" + escapeHtml(user.getEmail()) + "</td>\n" +
-                "    </tr>\n" +
-                "    <tr>\n" +
-                "        <td style=\"padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569;\">Username</td>\n" +
-                "        <td style=\"padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #0f172a;\">@" + escapeHtml(user.getUsername()) + "</td>\n" +
                 "    </tr>\n" +
                 "    <tr>\n" +
                 "        <td style=\"padding: 12px 16px; font-weight: 600; color: #475569;\">Requested Role</td>\n" +

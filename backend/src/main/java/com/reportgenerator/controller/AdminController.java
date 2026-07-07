@@ -87,6 +87,13 @@ public class AdminController {
             System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
         }
 
+        // Send decline notification email to user
+        try {
+            emailService.sendRegistrationDeclineEmail(user.getEmail(), user.getName());
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to send registration decline email: " + e.getMessage());
+        }
+
         return ResponseEntity.ok("Registration request declined and deleted successfully.");
     }
 }
