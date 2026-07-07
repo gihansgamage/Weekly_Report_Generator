@@ -23,6 +23,33 @@ const AllReports = ({ onToast }) => {
 
   // Report Modal view
   const [selectedReport, setSelectedReport] = useState(null);
+  const [suggestionsText, setSuggestionsText] = useState('');
+  const [savingSuggestions, setSavingSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (selectedReport) {
+      setSuggestionsText(selectedReport.blockerSuggestions || '');
+    } else {
+      setSuggestionsText('');
+    }
+  }, [selectedReport]);
+
+  const handleSaveSuggestions = async () => {
+    if (!selectedReport) return;
+    setSavingSuggestions(true);
+    try {
+      const res = await api.put(`/reports/${selectedReport.id}/suggestions`, {
+        suggestions: suggestionsText
+      });
+      onToast('Suggestions saved and notification email sent to user!', 'success');
+      setSelectedReport(res.data);
+      fetchFilteredReports();
+    } catch (err) {
+      onToast(err.response?.data || 'Failed to save suggestions', 'error');
+    } finally {
+      setSavingSuggestions(false);
+    }
+  };
 
   const getMonday = (d) => {
     const date = new Date(d);
@@ -390,6 +417,31 @@ const AllReports = ({ onToast }) => {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div className="details-section" style={{ marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <BookOpen size={14} style={{ color: 'var(--color-primary)' }} />
+                Manager's Suggestions / Solutions for Blockers
+              </h4>
+              <div style={{ marginTop: '10px' }}>
+                <textarea
+                  rows="3"
+                  placeholder="Provide suggestions or solutions for these blockers..."
+                  value={suggestionsText}
+                  onChange={(e) => setSuggestionsText(e.target.value)}
+                  style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.9rem', resize: 'vertical' }}
+                />
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleSaveSuggestions}
+                  disabled={savingSuggestions}
+                  style={{ width: 'auto', padding: '8px 16px', fontSize: '0.85rem', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {savingSuggestions ? 'Saving...' : 'Save & Notify User'}
+                </button>
+              </div>
             </div>
 
             {selectedReport.notes && (

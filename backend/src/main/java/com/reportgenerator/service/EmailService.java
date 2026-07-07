@@ -259,6 +259,34 @@ public class EmailService {
     }
 
     /**
+     * Sends blocker suggestions/solutions notification email to the user.
+     */
+    public void sendBlockerSuggestionsEmail(User user, Report report) {
+        String subject = "Sisenco Digital - Manager Feedback on Blockers";
+        String content = "<p>Dear <strong>" + escapeHtml(user.getName()) + "</strong>,</p>\n" +
+                "<p>A manager has reviewed your weekly report for the week starting <strong>" + report.getWeekStart().toString() + "</strong> and suggested solutions for your blockers / challenges:</p>\n" +
+                "\n" +
+                "<h3 style=\"color: #0f172a; font-size: 16px; font-weight: 700; margin-bottom: 10px;\">Reported Blockers</h3>\n" +
+                "<div style=\"background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; font-size: 14px; margin-bottom: 20px; line-height: 1.5; color: #991b1b;\">\n" +
+                "    " + formatJsonArrayToHtml(report.getBlockers()) + "\n" +
+                "</div>\n" +
+                "\n" +
+                "<h3 style=\"color: #0f172a; font-size: 16px; font-weight: 700; margin-bottom: 10px;\">Manager's Solutions / Suggestions</h3>\n" +
+                "<div style=\"background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; font-size: 14px; margin-bottom: 20px; line-height: 1.5; color: #166534; font-weight: 500; white-space: pre-wrap;\">\n" +
+                "    " + escapeHtml(report.getBlockerSuggestions()) + "\n" +
+                "</div>";
+
+        String html = buildTemplate(
+                "Feedback on Blockers",
+                "Manager Blocker Suggestions",
+                content,
+                "View My Reports",
+                "http://localhost:5173/login"
+        );
+        sendHtmlEmail(user.getEmail(), subject, html);
+    }
+
+    /**
      * Builds the premium styled HTML template.
      */
     private String buildTemplate(String title, String heading, String contentHtml, String ctaText, String ctaUrl) {

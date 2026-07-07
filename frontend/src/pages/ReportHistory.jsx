@@ -302,6 +302,18 @@ const ReportHistory = ({ onToast, onEditDraft }) => {
               </ul>
             </div>
 
+            {selectedReport.blockerSuggestions && (
+              <div className="details-section" style={{ marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-success)' }}>
+                  <BookOpen size={14} style={{ color: 'var(--color-success)' }} />
+                  Manager's Suggestions / Solutions for Blockers
+                </h4>
+                <p style={{ whiteSpace: 'pre-wrap', background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', padding: '12px', marginTop: '8px', color: 'var(--color-success)', fontWeight: 500 }}>
+                  {selectedReport.blockerSuggestions}
+                </p>
+              </div>
+            )}
+
             {selectedReport.notes && (
               <div className="details-section">
                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

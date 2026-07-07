@@ -37,6 +37,9 @@ public class Report {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "blocker_suggestions", columnDefinition = "TEXT")
+    private String blockerSuggestions;
+
     @Column(nullable = false)
     private String status; // 'DRAFT' or 'SUBMITTED'
 
@@ -170,5 +173,13 @@ public class Report {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getBlockerSuggestions() {
+        return blockerSuggestions;
+    }
+
+    public void setBlockerSuggestions(String blockerSuggestions) {
+        this.blockerSuggestions = blockerSuggestions;
     }
 }

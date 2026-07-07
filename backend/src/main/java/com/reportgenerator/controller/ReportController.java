@@ -242,6 +242,39 @@ public class ReportController {
         return ResponseEntity.ok("Report marked as read");
     }
 
+    @PutMapping("/{id}/suggestions")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<?> updateSuggestions(@PathVariable Long id, @RequestBody java.util.Map<String, String> requestBody) {
+        Optional<Report> reportOpt = reportRepository.findById(id);
+        if (reportOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Report report = reportOpt.get();
+        String suggestions = requestBody.get("suggestions");
+        report.setBlockerSuggestions(suggestions);
+        Report savedReport = reportRepository.save(report);
+
+        // Save activity log
+        try {
+            activityLogRepository.save(new com.reportgenerator.model.ActivityLog(
+                "Manager suggested solutions for blockers in " + report.getUser().getName() + "'s report.", 
+                "MANAGER_FEEDBACK"
+            ));
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to write activity log: " + e.getMessage());
+        }
+
+        // Send email notification to report owner
+        try {
+            emailService.sendBlockerSuggestionsEmail(report.getUser(), savedReport);
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to send blocker suggestions notification email: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok(savedReport);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteReport(@PathVariable Long id, Authentication authentication) {
         Optional<Report> reportOpt = reportRepository.findById(id);
