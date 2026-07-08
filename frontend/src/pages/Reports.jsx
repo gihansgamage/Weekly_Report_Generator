@@ -18,12 +18,23 @@ const Reports = ({ onToast, editingDraftWeek, setEditingDraftWeek }) => {
   
   // Format weekStart (defaulting to the Monday of the current week)
   const getMonday = (d) => {
-    const date = new Date(d);
+    let date;
+    if (typeof d === 'string') {
+      const [year, month, day] = d.split('-').map(Number);
+      date = new Date(year, month - 1, day);
+    } else if (d instanceof Date) {
+      date = new Date(d);
+    } else {
+      date = new Date();
+    }
     const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(date.setDate(diff));
     monday.setHours(0,0,0,0);
-    return monday.toISOString().split('T')[0];
+    const yyyy = monday.getFullYear();
+    const mm = String(monday.getMonth() + 1).padStart(2, '0');
+    const dd = String(monday.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   };
 
   const [weekStart, setWeekStart] = useState(getMonday(new Date()));

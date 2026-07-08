@@ -35,17 +35,29 @@ Weekly_Report_Generator/
 
 ## 🛠️ Getting Started / Quick Run
 
-### 1. Database Setup
-Launch PostgreSQL and run:
-```sql
-CREATE DATABASE weekly_report_db;
-```
-Verify or update credentials in `.env` in the root folder:
-```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/weekly_report_db
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=postgres
-```
+### 1. Database & Environment Setup
+1. Launch PostgreSQL and run:
+   ```sql
+   CREATE DATABASE weekly_report_db;
+   ```
+2. Configure environment variables in the `.env` file in the root folder:
+   * **Database Connection**:
+     ```env
+     SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/weekly_report_db
+     SPRING_DATASOURCE_USERNAME=postgres
+     SPRING_DATASOURCE_PASSWORD=postgres
+     ```
+   * **SMTP Email Settings (Optional - for real email verification OTPs and approvals)**:
+     ```env
+     SMTP_GMAIL=your-email@gmail.com
+     SMTP_APP_PASSWORD=your-16-character-google-app-password
+     ```
+     *(See **SMTP Email Configuration** section below for Gmail details)*
+   * **Gemini AI Chat Assistant (Optional)**:
+     ```env
+     GEMINI_API_KEY=your-gemini-api-key
+     ```
+     *(Defaults to simulated demo mode if left empty)*
 
 ### 2. Run the Backend
 Navigate to `/backend` and launch the service:
@@ -68,13 +80,13 @@ Open `http://localhost:5173/login` in your browser.
 
 ## 🔑 Login Accounts (Pre-seeded)
 
-Use these accounts to sign in immediately:
+Use the following default administrator account to sign in and approve pending user registrations:
 
-| Email | Password | Role | Description |
+| Username / Email | Password | Role | Description |
 | :--- | :--- | :--- | :--- |
-| **`manager@example.com`** | `manager123` | `MANAGER` | Full dashboard metrics, filtering, categories CRUD, AI assistant access. |
-| **`member@example.com`** | `member123` | `MEMBER` | Submit reports, save drafts, view own history list. |
-| **`dev@example.com`** | `member123` | `MEMBER` | Alternate developer account to test pending / late statuses. |
+| **`manageremail@gmail.com`** (or **`admin`**) | `admin123` | `MANAGER` | System administrator with full access to dashboard metrics, category management, approvals, and the AI assistant. |
+
+All regular team members must submit a registration request on the login page and wait for the manager to approve them before logging in.
 
 ---
 
@@ -84,3 +96,18 @@ To configure live Gemini AI:
 1. Append your Gemini API key in the `.env` file: `GEMINI_API_KEY=your-api-key`.
 2. Restart the Spring Boot backend.
 *Note: If no API key is specified, the assistant runs in simulated demo mode, generating analysis directly from the database mock-engine.*
+
+---
+
+## 📧 SMTP Email Configuration (Optional)
+The system uses SMTP (configured for Gmail by default) to send registration approval notifications and one-time password (OTP) email verifications.
+To enable real email dispatch:
+1. Open the `.env` file in the root directory.
+2. Define your SMTP credentials:
+   ```env
+   SMTP_GMAIL=your-email@gmail.com
+   SMTP_APP_PASSWORD=your-16-character-google-app-password
+   ```
+   *Note: To use Google's SMTP servers, you must have 2-Step Verification enabled on your Google Account. You can then generate an App Password via Google Account Security settings.*
+3. Restart the Spring Boot backend.
+

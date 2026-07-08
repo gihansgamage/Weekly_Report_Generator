@@ -23,12 +23,23 @@ const Dashboard = ({ onToast }) => {
   };
 
   const getMonday = (d) => {
-    const date = new Date(d);
+    let date;
+    if (typeof d === 'string') {
+      const [year, month, day] = d.split('-').map(Number);
+      date = new Date(year, month - 1, day);
+    } else if (d instanceof Date) {
+      date = new Date(d);
+    } else {
+      date = new Date();
+    }
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(date.setDate(diff));
     monday.setHours(0,0,0,0);
-    return monday.toISOString().split('T')[0];
+    const yyyy = monday.getFullYear();
+    const mm = String(monday.getMonth() + 1).padStart(2, '0');
+    const dd = String(monday.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   };
 
   const [selectedWeek, setSelectedWeek] = useState(getMonday(new Date()));
